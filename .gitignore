@@ -1,0 +1,48 @@
+# Data (too large / licenced)
+data/raw/
+data/interim/
+data/processed/
+*.xlsx
+*.xls
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Results (generated — keep small samples only)
+results/tables/*.csv
+results/figures/*.png
+results/figures/*.pdf
+!results/tables/.gitkeep
+!results/figures/.gitkeep
+
+# Reports (generated)
+reports/*.pdf
+reports/*.xlsx
+reports/*.pptx
+
+# Logs
+*.log

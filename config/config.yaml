@@ -1,0 +1,76 @@
+# ============================================================================
+# Configuration — "Disclosed Operational Risk as an Equity Signal"
+# Long-Short Equity Strategy from 10-K & Earnings Call NLP Signals
+# ============================================================================
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  results: results
+
+data_path: "B"  # "A" = WRDS (CRSP/Compustat), "B" = free (yfinance + SEC XBRL)
+
+sec_user_agent: "YugdesResearch yugdes@example.com"  # required by SEC EDGAR
+
+# --- Sample window ---
+sample:
+  start: "2006-01"
+  end: null  # null = latest available
+  holdout_start: "2022-01"
+
+# --- Universe filters (evaluated at formation date) ---
+universe:
+  min_price: 5.0
+  min_mktcap_musd: 100
+  min_item1a_words: 1000
+  drop_item1a_optional: true
+  exclude_sic: [[6000, 6999], [4900, 4999]]  # financials, utilities
+  min_history_months: 12
+
+# --- Signal construction ---
+signal:
+  primary: "OpRisk_ind"           # industry-neutral operations probability
+  industry_scheme: "FF48"
+  n_quantiles: 5
+  holding_months: 12
+  availability_lag_bdays: 2
+
+# --- Portfolio construction ---
+portfolio:
+  weighting: "value"              # value | equal
+  weight_cap_pct: 0.05
+  min_names_per_leg: 20
+
+# --- Transaction costs (one-way, basis points) ---
+costs_bps_one_way:
+  large: 10
+  mid: 25
+  small: 50
+
+# --- Statistical inference ---
+newey_west_lags: 6
+bootstrap:
+  draws: 5000
+  method: stationary
+
+# --- ML configuration ---
+ml:
+  models: [elastic_net, lightgbm]
+  target: "rank_excess_ret_next_month"
+  initial_train_years: 7
+  refit_every_months: 12
+  embargo_months: 1
+  lgbm:
+    num_leaves: 31
+    min_data_in_leaf: 500
+    learning_rate: 0.03
+    feature_fraction: 0.7
+    n_estimators: 800
+    early_stopping_rounds: 50
+  elastic_net:
+    l1_ratio: [0.1, 0.5, 0.9]
+    alpha: [0.001, 0.01, 0.1]
+
+# --- Reproducibility ---
+seed: 42
