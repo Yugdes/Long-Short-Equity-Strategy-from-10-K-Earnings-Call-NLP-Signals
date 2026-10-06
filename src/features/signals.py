@@ -64,6 +64,9 @@ def build_signals(
             on=["cik", "year"],
             how="left",
         )
+        # Fill missing filing dates (due to imperfect matching) with 90-day fallback
+        fallback = pd.to_datetime(df["year"].astype(str) + "-03-31")
+        df["date_filed"] = df["date_filed"].fillna(fallback)
     else:
         # Fallback: assume filed ~90 days after fiscal year end
         df["date_filed"] = pd.to_datetime(df["year"].astype(str) + "-03-31")
