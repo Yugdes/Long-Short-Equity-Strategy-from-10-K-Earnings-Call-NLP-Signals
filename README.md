@@ -44,6 +44,7 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 │   ├── ml/                  # Walk-forward validation, LightGBM models
 │   ├── analysis/            # Text diagnostics (autocorrelation, prob-count correlations)
 │   └── utils/               # Helpers, config loader, finance-style plotting
+├── scripts/                 # Utility scripts (e.g., dummy data generation)
 ├── app/                     # Streamlit dashboard (reads real panel data)
 ├── data/
 │   ├── raw/                 # Raw input datasets (not committed)
