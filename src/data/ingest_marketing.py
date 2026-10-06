@@ -57,7 +57,7 @@ def ingest_marketing_scores(
     dfs = []
     for f in csv_files:
         logger.info(f"Reading {f.name}...")
-        df = pd.read_csv(f)
+        df = pd.read_csv(f, low_memory=False)
         df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_", regex=False)
         dfs.append(df)
         logger.info(f"  → {df.shape[0]} rows, columns: {list(df.columns)[:10]}...")
@@ -76,6 +76,10 @@ def ingest_marketing_scores(
     }
     found_ids = {k: v for k, v in id_candidates.items() if k in df.columns}
     logger.info(f"Found identifiers: {list(found_ids.keys())}")
+    
+    # Cast identifiers to string to avoid parquet mixed-type conversion errors
+    for col in found_ids:
+        df[col] = df[col].astype(str)
 
     # ── Time dimension ───────────────────────────────────────────────────
     # Look for quarter/year columns
