@@ -89,6 +89,25 @@ def ingest_risk_scores(
     # Read — openpyxl for .xlsx
     df = pd.read_excel(excel_path, engine="openpyxl")
     df = _normalize_columns(df)
+    
+    # Map OSF column naming conventions to internal standard
+    rename_map = {"fyear": "year"}
+    for f in RISK_FACTORS:
+        if f"{f}__probability" in df.columns:
+            rename_map[f"{f}__probability"] = f"{f}_prob"
+        elif f"{f}_probability" in df.columns:
+            rename_map[f"{f}_probability"] = f"{f}_prob"
+            
+        if f"{f}__classification" in df.columns:
+            rename_map[f"{f}__classification"] = f"{f}_binary"
+        elif f"{f}_classification" in df.columns:
+            rename_map[f"{f}_classification"] = f"{f}_binary"
+            
+        if f in df.columns:
+            rename_map[f] = f"{f}_count"
+            
+    df = df.rename(columns=rename_map)
+    
     logger.info(f"Raw shape: {df.shape}. Columns: {list(df.columns)}")
 
     # ── Validate expected columns ────────────────────────────────────────
