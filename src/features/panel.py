@@ -96,7 +96,7 @@ def build_stock_month_panel(
         # merge_asof: for each month, find the most recent signal
         merged = pd.merge_asof(
             cik_months.sort_values("month_start"),
-            cik_sig[["cik", "first_hold_start"] +
+            cik_sig[["first_hold_start"] +
                     [c for c in cik_sig.columns if c.startswith("S")]
                     ].sort_values("first_hold_start"),
             left_on="month_start",
