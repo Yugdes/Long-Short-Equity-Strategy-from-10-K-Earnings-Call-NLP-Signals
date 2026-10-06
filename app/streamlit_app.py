@@ -19,37 +19,46 @@ st.set_page_config(
 @st.cache_data
 def load_data():
     """Load the processed small parquet files for the app."""
-    # In a real app, this would load from a data/processed/app_data/ folder.
-    # For now, we simulate the data structure to demonstrate the UI.
-    
-    # Dummy data for demonstration
-    np.random.seed(42)
-    years = list(range(2010, 2025))
-    tickers = ["AAPL", "MSFT", "XOM", "JPM", "WMT", "TSLA"]
-    
-    data = []
-    for t in tickers:
-        base_risk = np.random.uniform(0.1, 0.8)
-        for y in years:
-            risk = np.clip(base_risk + np.random.normal(0, 0.05), 0, 1)
-            data.append({
-                "ticker": t,
-                "year": y,
-                "op_risk_pct": risk * 100,
-                "non_op_risk_pct": np.random.uniform(20, 80),
-                "industry": "Tech" if t in ["AAPL", "MSFT"] else "Other",
-                "ff48": 35 if t in ["AAPL", "MSFT"] else 48
-            })
+    try:
+        panel = pd.read_parquet("data/processed/panel_stock_month.parquet")
+        
+        # We need ticker, year, op_risk_pct, non_op_risk_pct, industry
+        if "ticker" not in panel.columns:
+            sec = pd.read_parquet("data/processed/security_master.parquet")
+            panel = panel.merge(sec[["cik", "ticker"]].drop_duplicates("cik"), on="cik", how="left")
             
-    df = pd.DataFrame(data)
-    
-    # Industry medians
-    ind_med = df.groupby(["industry", "year"])["op_risk_pct"].median().reset_index()
-    ind_med = ind_med.rename(columns={"op_risk_pct": "industry_median_pct"})
-    
-    df = df.merge(ind_med, on=["industry", "year"], how="left")
-    
-    return df
+        # Convert month to year
+        panel["year"] = panel["month"].dt.year if hasattr(panel["month"].dt, "year") else panel["month"].apply(lambda x: x.year)
+        
+        # Convert risk signals to percentiles globally per year
+        panel["op_risk_pct"] = panel.groupby("year")["S1_OpRisk"].rank(pct=True) * 100
+        panel["non_op_risk_pct"] = panel.groupby("year")["S2_NonOpRisk"].rank(pct=True) * 100
+        
+        # Get industry from ffi48 or sic
+        # The Astvansh dataset might have ffi48 or we can just group by all stocks as one industry
+        panel["industry"] = "All"
+        
+        # Aggregate to yearly for the app
+        df = panel.groupby(["ticker", "year", "industry"]).agg({
+            "op_risk_pct": "mean",
+            "non_op_risk_pct": "mean"
+        }).reset_index()
+        
+        # Industry medians
+        ind_med = df.groupby(["industry", "year"])["op_risk_pct"].median().reset_index()
+        ind_med = ind_med.rename(columns={"op_risk_pct": "industry_median_pct"})
+        
+        df = df.merge(ind_med, on=["industry", "year"], how="left")
+        
+        # Filter to tickers with enough data
+        counts = df["ticker"].value_counts()
+        valid_tickers = counts[counts >= 5].index
+        df = df[df["ticker"].isin(valid_tickers)]
+        
+        return df
+    except Exception as e:
+        st.error(f"Failed to load real data: {e}")
+        return pd.DataFrame()
 
 # --- Main App ---
 st.title("📊 Operational Risk Benchmark")

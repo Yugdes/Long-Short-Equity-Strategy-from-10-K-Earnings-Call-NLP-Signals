@@ -69,8 +69,12 @@ def build_stock_month_panel(
     ).astype('datetime64[ns]')
 
     # Single efficient merge_asof
+    full_grid["cik"] = full_grid["cik"].astype("int64")
+    cik_sig = sig[["cik", "first_hold_start"] + [c for c in sig.columns if c.startswith("S")]].copy()
+    cik_sig["cik"] = cik_sig["cik"].astype("int64")
+    
     full_grid = full_grid.sort_values("month_start")
-    cik_sig = sig[["cik", "first_hold_start"] + [c for c in sig.columns if c.startswith("S")]].sort_values("first_hold_start")
+    cik_sig = cik_sig.sort_values("first_hold_start")
 
     merged = pd.merge_asof(
         full_grid,
