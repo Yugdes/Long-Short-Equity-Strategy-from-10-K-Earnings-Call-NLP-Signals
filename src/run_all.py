@@ -65,8 +65,8 @@ def run_pipeline(force: bool = False):
     if not panel.empty and "rank_excess_ret_next" in panel.columns:
         features = [c for c in panel.columns if c.startswith("S")] + \
                    ["market_orientation", "marketing_capabilities", "marketing_excellence"]
-        # Only keep features that actually exist in the panel
-        features = [f for f in features if f in panel.columns]
+        # Only keep features that actually exist in the panel and aren't completely null
+        features = [f for f in features if f in panel.columns and panel[f].notna().sum() > 0]
         
         logger.info(f"Running Walk-Forward LightGBM with {len(features)} features")
         preds, models = walkforward_cv(

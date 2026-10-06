@@ -128,7 +128,7 @@ The pipeline runs in 5 phases:
 
 ## Authors & Citations
 
-Developed by **Yugdeep Singh** as part of MS 499 (Independent Research).
+Developed by **Yug Mitulkumar Desai** and **Arin Mehta** as part of MS 499 (Independent Research).
 
 **Foundational Papers (Data Sources):**
 * Astvansh, V. & Simpson, J. J. (2026). *A Firm's Operational Risk: Data Set and Empirical Evidence*. Manufacturing & Service Operations Management.

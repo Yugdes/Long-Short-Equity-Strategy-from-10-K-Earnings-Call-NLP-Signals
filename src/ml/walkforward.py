@@ -132,8 +132,8 @@ def walkforward_cv(
         train_mask = (panel[date_col] >= split["train_start"]) & (panel[date_col] <= split["train_end"])
         test_mask = (panel[date_col] >= split["test_start"]) & (panel[date_col] <= split["test_end"])
 
-        train_df = panel[train_mask].dropna(subset=features + [target])
-        test_df = panel[test_mask].dropna(subset=features + [target])
+        train_df = panel[train_mask].dropna(subset=[target])
+        test_df = panel[test_mask].dropna(subset=[target])
 
         if train_df.empty or test_df.empty:
             logger.warning(f"Empty train or test set for split {i+1}. Skipping.")
