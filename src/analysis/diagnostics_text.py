@@ -35,11 +35,14 @@ def run_text_diagnostics(
     # 1. Heatmap of OpRisk by Industry-Year
     if "operations_prob" in df.columns and "ff48" in df.columns:
         ind_year_mean = df.groupby(["ff48", "year"])["operations_prob"].mean().unstack()
-        plot_heatmap(
-            ind_year_mean, 
-            title="Mean Operational Risk Probability by Industry-Year",
-            save_path=out_dir / "oprisk_heatmap.png"
-        )
+        if not ind_year_mean.empty:
+            plot_heatmap(
+                ind_year_mean, 
+                title="Mean Operational Risk Probability by Industry-Year",
+                save_path=out_dir / "oprisk_heatmap.png"
+            )
+        else:
+            logger.warning("No valid industry mappings found for heatmap.")
         
     # 2. Probability vs Count Correlation
     factors = ["operations", "finance", "legal"]

@@ -18,6 +18,9 @@ from src.features.panel import build_stock_month_panel
 from src.backtest.portfolios import compute_portfolio_returns
 from src.backtest.factor_regs import run_all_factor_models
 from src.analysis.diagnostics_text import run_text_diagnostics
+from src.ml.walkforward import walkforward_cv
+from src.ml.models import train_lightgbm
+from src.ml.evaluation import evaluate_predictions
 
 logger = setup_logging("run_all")
 
@@ -44,7 +47,7 @@ def run_pipeline(force: bool = False):
     # Phase 3: Features & Panel
     logger.info("--- Phase 3: Signals & Panel ---")
     signals = build_signals(risk, filings, sec)
-    panel = build_stock_month_panel(signals, rets, factors, sec)
+    panel = build_stock_month_panel(signals, rets, factors, sec, marketing=mktg)
     
     # Phase 4: Backtest
     logger.info("--- Phase 4: Baseline Backtest ---")
@@ -56,6 +59,23 @@ def run_pipeline(force: bool = False):
             logger.info("Running factor attribution on L/S spread")
             regs = run_all_factor_models(port_ret["L/S"].dropna(), factors)
             logger.info(f"Alpha results:\n{regs[['model', 'alpha_annual', 't_alpha']]}")
+            
+    # Phase 5: Machine Learning (Path B)
+    logger.info("--- Phase 5: Machine Learning ---")
+    if not panel.empty and "rank_excess_ret_next" in panel.columns:
+        features = [c for c in panel.columns if c.startswith("S")] + \
+                   ["market_orientation", "marketing_capabilities", "marketing_excellence"]
+        # Only keep features that actually exist in the panel
+        features = [f for f in features if f in panel.columns]
+        
+        logger.info(f"Running Walk-Forward LightGBM with {len(features)} features")
+        preds, models = walkforward_cv(
+            panel, features, target="rank_excess_ret_next", model_func=train_lightgbm
+        )
+        
+        if not preds.empty:
+            eval_metrics = evaluate_predictions(preds)
+            logger.info(f"ML Evaluation Metrics: {eval_metrics}")
             
     logger.info("Pipeline completed successfully.")
 

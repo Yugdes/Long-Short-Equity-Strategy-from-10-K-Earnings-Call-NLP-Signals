@@ -22,6 +22,7 @@ def build_stock_month_panel(
     returns: pd.DataFrame,
     factors: pd.DataFrame,
     security_master: pd.DataFrame,
+    marketing: pd.DataFrame = None,
     cfg: dict = None,
     force: bool = False,
 ) -> pd.DataFrame:
@@ -115,6 +116,38 @@ def build_stock_month_panel(
     panel = pd.concat(panels, ignore_index=True)
     logger.info(f"Raw panel: {len(panel)} stock-month rows")
 
+    # ── Step 2b: Merge marketing scores point-in-time ────────────────────
+    if marketing is not None and not marketing.empty and "avail_date" in marketing.columns:
+        logger.info("Merging marketing data point-in-time")
+        mktg = marketing.sort_values("avail_date")
+        
+        m_panels = []
+        for cik in panel["cik"].unique():
+            cik_panel = panel[panel["cik"] == cik].sort_values("month_start")
+            cik_mktg = mktg[mktg["cik"] == cik]
+            
+            if cik_mktg.empty:
+                m_panels.append(cik_panel)
+                continue
+                
+            merged_m = pd.merge_asof(
+                cik_panel,
+                cik_mktg[["avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
+                left_on="month_start",
+                right_on="avail_date",
+                direction="backward"
+            )
+            m_panels.append(merged_m)
+            
+        if m_panels:
+            panel = pd.concat(m_panels, ignore_index=True)
+        
+        # Fill NA marketing scores with median or 0 for ML
+        for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
+            if col in panel.columns:
+                panel[col] = panel.groupby("month")[col].transform(lambda x: x.fillna(x.median()))
+                panel[col] = panel[col].fillna(0) # Global fallback
+                
     # ── Step 3: Merge returns ────────────────────────────────────────────
     if not returns.empty:
         # Map CIK → ticker through security master
