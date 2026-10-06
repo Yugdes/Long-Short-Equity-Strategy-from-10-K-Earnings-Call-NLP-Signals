@@ -51,69 +51,43 @@ def build_stock_month_panel(
     sig["first_hold_start"] = pd.to_datetime(sig["first_hold_month"].dt.to_timestamp()).astype('datetime64[ns]')
 
     # ── Step 2: Create the monthly grid ──────────────────────────────────
-    # For each CIK with a signal, find all months it should be eligible
-    # (from first_hold_month to 12 months later)
-
-    # Get the full range of months from returns data
+    # Create full CIK × month grid (cartesian product)
+    from itertools import product
     if returns.empty:
         logger.warning("No return data available — building panel from signals only")
-        # Create a synthetic month range
-        all_months = pd.period_range(
-            start=cfg.get("sample", {}).get("start", "2006-01"),
-            end="2024-12",
-            freq="M",
-        )
+        all_months = pd.period_range(start=cfg.get("sample", {}).get("start", "2006-01"), end="2024-12", freq="M")
     else:
-        all_months = returns["month"].unique()
-        all_months = sorted(all_months)
+        all_months = sorted(returns["month"].unique())
 
     holding_months = cfg.get("signal", {}).get("holding_months", 12)
-
-    # For each month, find the latest signal per CIK using merge_asof
-    # This is the core point-in-time logic
-    months_df = pd.DataFrame({"month": all_months})
-    months_df["month_start"] = months_df["month"].apply(
-        lambda m: m.to_timestamp() if hasattr(m, "to_timestamp") else pd.Timestamp(m)
-    )
-    months_df["month_start"] = pd.to_datetime(months_df["month_start"]).astype('datetime64[ns]')
-
-    # Get unique CIKs
     unique_ciks = sig["cik"].unique()
-
-    # Create full CIK × month grid (this can be large — limit if needed)
     logger.info(f"Building panel: {len(unique_ciks)} CIKs × {len(all_months)} months")
 
-    # Use merge_asof for efficient point-in-time matching
-    panels = []
-    for cik in unique_ciks:
-        cik_sig = sig[sig["cik"] == cik].sort_values("first_hold_start")
-        if cik_sig.empty:
-            continue
+    full_grid = pd.DataFrame(list(product(unique_ciks, all_months)), columns=["cik", "month"])
+    full_grid["month_start"] = pd.to_datetime(
+        full_grid["month"].apply(lambda m: m.to_timestamp() if hasattr(m, "to_timestamp") else pd.Timestamp(m))
+    ).astype('datetime64[ns]')
 
-        cik_months = months_df.copy()
-        cik_months["cik"] = cik
+    # Single efficient merge_asof
+    full_grid = full_grid.sort_values("month_start")
+    cik_sig = sig[["cik", "first_hold_start"] + [c for c in sig.columns if c.startswith("S")]].sort_values("first_hold_start")
 
-        # merge_asof: for each month, find the most recent signal
-        merged = pd.merge_asof(
-            cik_months.sort_values("month_start"),
-            cik_sig[["first_hold_start"] +
-                    [c for c in cik_sig.columns if c.startswith("S")]
-                    ].sort_values("first_hold_start"),
-            left_on="month_start",
-            right_on="first_hold_start",
-            direction="backward",
-            tolerance=pd.Timedelta(days=365 * holding_months / 12 + 30),
-        )
+    merged = pd.merge_asof(
+        full_grid,
+        cik_sig,
+        left_on="month_start",
+        right_on="first_hold_start",
+        by="cik",
+        direction="backward",
+        tolerance=pd.Timedelta(days=365 * holding_months / 12 + 30),
+    )
 
-        # Keep only months where a signal is available
-        merged = merged.dropna(subset=["first_hold_start"])
-        panels.append(merged)
+    panel = merged.dropna(subset=["first_hold_start"]).reset_index(drop=True)
 
-    if not panels:
+    if panel.empty:
         logger.error("No panel rows created — check signal/return data alignment")
         return pd.DataFrame()
 
-    panel = pd.concat(panels, ignore_index=True)
     logger.info(f"Raw panel: {len(panel)} stock-month rows")
 
     # ── Step 2b: Merge marketing scores point-in-time ────────────────────
@@ -124,27 +98,17 @@ def build_stock_month_panel(
             logger.warning("Marketing data lacks 'cik' column! Cannot merge. You need a WRDS gvkey-cik link table.")
         else:
             mktg = marketing.sort_values("avail_date")
+            panel = panel.sort_values("month_start")
             
-            m_panels = []
-            for cik in panel["cik"].unique():
-                cik_panel = panel[panel["cik"] == cik].sort_values("month_start")
-                cik_mktg = mktg[mktg["cik"] == cik]
-                
-                if cik_mktg.empty:
-                    m_panels.append(cik_panel)
-                    continue
-                    
-                merged_m = pd.merge_asof(
-                    cik_panel,
-                    cik_mktg[["avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
-                    left_on="month_start",
-                    right_on="avail_date",
-                    direction="backward"
-                )
-                m_panels.append(merged_m)
-                
-            if m_panels:
-                panel = pd.concat(m_panels, ignore_index=True)
+            merged_m = pd.merge_asof(
+                panel,
+                mktg[["cik", "avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
+                left_on="month_start",
+                right_on="avail_date",
+                by="cik",
+                direction="backward"
+            )
+            panel = merged_m
             
             # Fill NA marketing scores with median or 0 for ML
             for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
