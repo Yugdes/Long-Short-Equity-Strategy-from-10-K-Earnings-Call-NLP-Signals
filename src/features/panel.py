@@ -48,7 +48,7 @@ def build_stock_month_panel(
 
     # ── Step 1: Create signal table with availability dates ──────────────
     sig = signals.copy()
-    sig["first_hold_start"] = sig["first_hold_month"].dt.to_timestamp()
+    sig["first_hold_start"] = pd.to_datetime(sig["first_hold_month"].dt.to_timestamp()).astype('datetime64[ns]')
 
     # ── Step 2: Create the monthly grid ──────────────────────────────────
     # For each CIK with a signal, find all months it should be eligible
@@ -75,6 +75,7 @@ def build_stock_month_panel(
     months_df["month_start"] = months_df["month"].apply(
         lambda m: m.to_timestamp() if hasattr(m, "to_timestamp") else pd.Timestamp(m)
     )
+    months_df["month_start"] = pd.to_datetime(months_df["month_start"]).astype('datetime64[ns]')
 
     # Get unique CIKs
     unique_ciks = sig["cik"].unique()
@@ -100,7 +101,6 @@ def build_stock_month_panel(
                     ].sort_values("first_hold_start"),
             left_on="month_start",
             right_on="first_hold_start",
-            by="cik",
             direction="backward",
             tolerance=pd.Timedelta(days=365 * holding_months / 12 + 30),
         )
@@ -119,34 +119,38 @@ def build_stock_month_panel(
     # ── Step 2b: Merge marketing scores point-in-time ────────────────────
     if marketing is not None and not marketing.empty and "avail_date" in marketing.columns:
         logger.info("Merging marketing data point-in-time")
-        mktg = marketing.sort_values("avail_date")
         
-        m_panels = []
-        for cik in panel["cik"].unique():
-            cik_panel = panel[panel["cik"] == cik].sort_values("month_start")
-            cik_mktg = mktg[mktg["cik"] == cik]
+        if "cik" not in marketing.columns:
+            logger.warning("Marketing data lacks 'cik' column! Cannot merge. You need a WRDS gvkey-cik link table.")
+        else:
+            mktg = marketing.sort_values("avail_date")
             
-            if cik_mktg.empty:
-                m_panels.append(cik_panel)
-                continue
+            m_panels = []
+            for cik in panel["cik"].unique():
+                cik_panel = panel[panel["cik"] == cik].sort_values("month_start")
+                cik_mktg = mktg[mktg["cik"] == cik]
                 
-            merged_m = pd.merge_asof(
-                cik_panel,
-                cik_mktg[["avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
-                left_on="month_start",
-                right_on="avail_date",
-                direction="backward"
-            )
-            m_panels.append(merged_m)
+                if cik_mktg.empty:
+                    m_panels.append(cik_panel)
+                    continue
+                    
+                merged_m = pd.merge_asof(
+                    cik_panel,
+                    cik_mktg[["avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
+                    left_on="month_start",
+                    right_on="avail_date",
+                    direction="backward"
+                )
+                m_panels.append(merged_m)
+                
+            if m_panels:
+                panel = pd.concat(m_panels, ignore_index=True)
             
-        if m_panels:
-            panel = pd.concat(m_panels, ignore_index=True)
-        
-        # Fill NA marketing scores with median or 0 for ML
-        for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
-            if col in panel.columns:
-                panel[col] = panel.groupby("month")[col].transform(lambda x: x.fillna(x.median()))
-                panel[col] = panel[col].fillna(0) # Global fallback
+            # Fill NA marketing scores with median or 0 for ML
+            for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
+                if col in panel.columns:
+                    panel[col] = panel.groupby("month")[col].transform(lambda x: x.fillna(x.median()))
+                    panel[col] = panel[col].fillna(0) # Global fallback
                 
     # ── Step 3: Merge returns ────────────────────────────────────────────
     if not returns.empty:
