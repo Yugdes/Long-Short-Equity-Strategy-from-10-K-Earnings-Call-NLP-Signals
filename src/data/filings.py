@@ -41,7 +41,9 @@ def download_form_index(
     """
     cache_file = cache_dir / f"form_idx_{year}_Q{quarter}.parquet"
     if cache_file.exists():
-        return load_parquet(cache_file)
+        df = load_parquet(cache_file)
+        # Filter cache to prevent OOM
+        return df[df["form_type"].isin(FORM_TYPES_10K)].copy()
 
     url = f"{EDGAR_BASE}/{year}/QTR{quarter}/form.idx"
     headers = _get_headers(cfg)
@@ -99,6 +101,9 @@ def download_form_index(
     df = pd.DataFrame(records)
     df["date_filed"] = pd.to_datetime(df["date_filed"], errors="coerce")
     df = df.dropna(subset=["date_filed"])
+    
+    # Filter before saving to disk to prevent huge cache files and OOM issues
+    df = df[df["form_type"].isin(FORM_TYPES_10K)].copy()
 
     save_parquet(df, cache_file)
     logger.info(f"Parsed {len(df)} filings from {year} Q{quarter}")
