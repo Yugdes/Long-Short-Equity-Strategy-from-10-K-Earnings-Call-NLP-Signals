@@ -26,7 +26,4 @@ app:
 	streamlit run app/streamlit_app.py
 
 clean:
-	rm -rf data/interim/*.parquet
-	rm -rf data/processed/*.parquet
-	rm -rf results/tables/*.csv
-	rm -rf results/figures/*.png
+	python -c "import glob, os; [os.remove(f) for p in ['data/interim/*.parquet', 'data/processed/*.parquet', 'results/tables/*.csv', 'results/figures/*.png'] for f in glob.glob(p)]"

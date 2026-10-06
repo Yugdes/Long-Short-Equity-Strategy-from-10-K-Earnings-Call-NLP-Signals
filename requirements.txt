@@ -21,6 +21,7 @@ yfinance>=0.2.31
 pandas-datareader>=0.10.0
 requests>=2.31.0
 tenacity>=8.2.0
+wrds>=3.1.2
 
 # NLP / matching
 rapidfuzz>=3.5.0
