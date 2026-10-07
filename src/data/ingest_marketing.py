@@ -65,21 +65,33 @@ def ingest_marketing_scores(
     df = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
 
     # ── Identify the firm identifier ─────────────────────────────────────
-    id_candidates = {
-        "gvkey": "gvkey",
-        "ticker": "ticker",
-        "cusip": "cusip",
-        "permno": "permno",
-        "cik": "cik",
-        "company_name": "company_name",
-        "firm": "firm",
-    }
+    id_candidates = {"gvkey": "gvkey", "ticker": "ticker", "cik": "cik"}
     found_ids = {k: v for k, v in id_candidates.items() if k in df.columns}
     logger.info(f"Found identifiers: {list(found_ids.keys())}")
     
-    # Cast identifiers to string to avoid parquet mixed-type conversion errors
+    # WRDS Link Table Integration
+    link_file = raw_dir.parent / "cik_gvkey.csv"
+    if "cik" not in df.columns and "gvkey" in df.columns and link_file.exists():
+        logger.info(f"Found WRDS Link Table: {link_file.name}. Merging GVKEY to CIK...")
+        link_df = pd.read_csv(link_file, usecols=["cik", "gvkey"]).dropna()
+        
+        # Format gvkey consistently as 6-digit string
+        link_df["gvkey"] = link_df["gvkey"].astype(float).astype("Int64").astype(str).str.zfill(6)
+        link_df = link_df.drop_duplicates(subset=["gvkey"])
+        
+        df["gvkey"] = df["gvkey"].astype(str).str.zfill(6)
+        df = df.merge(link_df, on="gvkey", how="left")
+        
+        mapped_count = df["cik"].notna().sum()
+        logger.info(f"Successfully mapped {mapped_count} / {len(df)} rows to CIK.")
+        
+        df = df.dropna(subset=["cik"])
+        df["cik"] = df["cik"].astype("int64")
+        found_ids["cik"] = "cik"
+    
     for col in found_ids:
-        df[col] = df[col].astype(str)
+        if col != "cik":
+            df[col] = df[col].astype(str)
 
     # ── Time dimension ───────────────────────────────────────────────────
     # Look for quarter/year columns
