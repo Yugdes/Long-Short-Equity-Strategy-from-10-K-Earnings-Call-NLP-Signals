@@ -322,14 +322,15 @@ try:
                 mkt_mult = st.slider("Marketing Emphasis Multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1, help="1.0 = Base Marketing. 2.0 = Double the marketing orientation in Earnings Calls.")
             
             # Reconstruct the feature vector exactly as the model expects
-            features = [c for c in latest_raw.index if c.startswith("S")]
-            if has_marketing:
-                features += ["market_orientation", "marketing_capabilities"]
-                
-            features = [f for f in features if f in latest_raw.index and pd.notna(latest_raw[f])]
+            if hasattr(ml_model, "feature_name_"):
+                features = ml_model.feature_name_
+            else:
+                features = [c for c in latest_raw.index if c.startswith("S")]
+                if has_marketing:
+                    features += ["market_orientation", "marketing_capabilities"]
             
-            # Base prediction
-            base_df = pd.DataFrame([latest_raw[features]])
+            # Base prediction (allow NaNs, LightGBM handles them natively)
+            base_df = pd.DataFrame([latest_raw.get(features)])
             base_pred = ml_model.predict(base_df)[0]
             
             # Simulated prediction
@@ -337,7 +338,7 @@ try:
             for col in sim_df.columns:
                 if col.startswith("S"):
                     sim_df[col] = sim_df[col] * risk_mult
-                elif col in ["market_orientation", "marketing_capabilities"]:
+                elif col.startswith("market"):
                     sim_df[col] = sim_df[col] * mkt_mult
                     
             sim_pred = ml_model.predict(sim_df)[0]
