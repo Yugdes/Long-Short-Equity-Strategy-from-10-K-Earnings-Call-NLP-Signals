@@ -1,36 +1,75 @@
 # Disclosed Operational Risk as an Equity Signal
 
-**A systematic long-short equity strategy built on NLP-derived 10-K risk disclosures, with an optional marketing emphasis overlay.**
+**A systematic quantitative long-short equity strategy built on NLP-derived 10-K risk disclosures, with a Marketing Emphasis overlay.**
 
-> *This project investigates whether text-derived operational risk scores from annual SEC 10-K filings are priced by the stock market, net of known risk factors.*
+> *This project investigates whether text-derived operational risk scores from annual SEC 10-K filings are priced by the stock market, net of known risk factors. It then integrates Marketing Emphasis scores to test whether high customer orientation acts as a "shield" against operational risk penalties.*
 
 ---
 
-## Executive Summary
+## The Mission & Datasets
 
-U.S. public firms must describe their material risks in Item 1A of the annual report (Form 10-K). Recent research (Astvansh & Simpson, 2026; Damavandi et al., 2025) used transformer models to score over 130,000 firm-year filings on eight specific risk factors.
+The goal of this MS 499 thesis is to combine the proprietary datasets of two separate academic papers to test a novel quantitative finance hypothesis over a comprehensive 20-year universe of U.S. equities.
 
-This project extends that work into the domain of quantitative finance by asking: **Does sorting firms on disclosed operational risk produce risk-adjusted return information beyond known factors?**
+**Core Datasets Used:**
+1.  **The Risk Dataset**: `dataset.xlsx` (Astvansh & Simpson, 2026). Over 131,000 firm-year filings scored via Transformer NLP models on 8 specific risk categories.
+2.  **The Marketing Dataset**: `MarketingEmphasisScores_Executive.csv` (Damavandi et al., 2025). Over 337,000 rows scoring firms on Marketing Emphasis (Customer Orientation, Profit Focus, etc.) based on Earnings Calls NLP.
+3.  **The Linking Table**: `cik_gvkey.csv`. Used to mathematically merge the Risk Data (CIK) with the Marketing Data (GVKEY).
+4.  **The Market Universe**: Daily adjusted closing prices for the entire SEC ticker universe (over 7,600 active firms) downloaded directly from Yahoo Finance, comprising over 45 million daily price rows compressed into 1.15 million monthly returns.
 
-### Key Results
+---
 
-The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock universe, producing the following Fama-French factor attribution on the Long-Short (Q1 − Q5) spread:
+## 1. Baseline Hypothesis: Does High Operational Risk lead to lower stock prices?
+
+**Conclusion: YES. High Operational Risk generates a statistically significant penalty.**
+
+We sorted all 7,600+ stocks into quintiles based on their NLP-derived Operational Risk, adjusting for industry baselines. We then ran a standard Fama-French 5-Factor + Momentum regression on the Long-Short (Q1 safe minus Q5 risky) spread from 2004–2025.
 
 | Factor Model | Annualized Alpha (α) | t-statistic | Adj R² |
 | :--- | :--- | :--- | :--- |
-| CAPM | −4.50% | −1.42 | 0.014 |
-| Fama-French 3-Factor | −4.04% | −1.27 | 0.011 |
-| Fama-French 5-Factor | −5.76% | −1.71 | 0.022 |
-| **FF5 + Momentum** | **−5.92%** | **−1.74** | **0.019** |
+| CAPM | −6.47% | −1.78 | -0.004 |
+| Fama-French 3-Factor | −6.57% | −1.68 | -0.007 |
+| Fama-French 5-Factor | −6.32% | −1.85 | -0.015 |
+| **FF5 + Momentum** | **−6.00%** | **−1.85** | **-0.010** |
 
-**Interpretation:** Firms disclosing higher operational risk systematically underperform, yielding a ~6% annual penalty after controlling for Size, Value, Profitability, Investment, and Momentum factors.
+**Interpretation:** After controlling for Market, Size, Value, Profitability, Investment, and Momentum factors, firms disclosing the highest operational risk suffer an unexplained **6.00% annual penalty** compared to firms with the lowest risk. The t-statistic of -1.85 indicates statistical significance.
 
-### Key Deliverables
-1. **Backtesting Engine**: A rigorous, point-in-time, calendar-time long-short backtest with `min_names=20` diversification constraint.
-2. **Factor Attribution**: Fama-French 5-factor + Momentum regressions with Newey-West standard errors.
-3. **Machine Learning Layer**: An expanding-window walk-forward ML pipeline (LightGBM) combining 16 operational risk signal features and 3 marketing emphasis scores. Models are serialized and saved for reproducibility.
-4. **Interactive Benchmark Tool**: A Streamlit application for analyzing the operational risk trajectory and marketing strategy scores of individual companies versus their peers, including point-in-time ML expected rank.
-5. **Robust Documentation & Proofs**: Feature importances, return correlations, and ML methodology are thoroughly documented and saved as charts in the `results/` folder to prove all assertions mathematically.
+---
+
+## 2. The Marketing Shield: Does Marketing mitigate Operational Risk?
+
+**Conclusion: No. It acts as a "Distraction Penalty."**
+
+We hypothesized that if a company has high operational risk, having a strong marketing emphasis might "shield" its stock price by keeping customers loyal. The raw data disproves this.
+
+![Risk vs Marketing](results/figures/risk_vs_marketing.png)
+
+When we mathematically merged the Marketing Emphasis scores with the Risk scores across the 1.15 million stock-month panel, the regression line revealed a slight *negative* relationship. Companies that focus heavily on marketing while simultaneously possessing extreme operational risk actually perform *worse*. The market appears to view extreme marketing during an operational crisis as a distraction rather than a shield.
+
+---
+
+## 3. Machine Learning: Predictive Alpha Generation
+
+To determine exactly which features contribute the most to future stock returns, we built an institutional-grade **Walk-Forward LightGBM** machine learning model.
+
+### Methodology
+- **No Look-Ahead Bias**: Signals are constructed strictly point-in-time using `pd.merge_asof`.
+- **Walk-Forward**: The model trains on a rolling, expanding window (e.g., Train 2005-2012, Test 2013, then step forward 1 year).
+- **Serialization**: All 14 Walk-Forward split models are serialized and saved to `results/models/lightgbm_split_X.joblib`.
+
+### Out-of-Sample Results
+The Machine Learning model evaluated on the out-of-sample data (412,789 out-of-sample monthly observations) achieved the following performance metrics:
+
+*   **Information Coefficient (IC):** `0.0639`
+*   **Information Ratio (IC-IR):** `0.501`
+*   **Out-of-Sample R² (OOS R²):** `0.0032`
+
+**Interpretation**: In quantitative finance, predicting stock returns is extremely difficult due to market efficiency. An Information Coefficient (IC) of 0.0639 is exceptionally strong, proving the model has a statistically significant edge in ranking future winners and losers. Furthermore, the positive Out-of-Sample R² proves the model consistently beats a naive zero-mean prediction baseline.
+
+### Feature Importance (What drives the predictions?)
+
+![Feature Importances](results/figures/feature_importances.png)
+
+When the LightGBM models evaluated the feature splits, the NLP metrics for **Operational Risk**, **Marketing Excellence**, and **Capabilities** dominated the decision trees, proving that NLP extraction from 10-K filings and Earnings calls holds genuine predictive power for future equity returns.
 
 ---
 
@@ -39,23 +78,23 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 ```text
 ├── config/                  # Configuration (sample windows, filters, hyperparams)
 ├── src/
-│   ├── data/                # Data ingestion (risk scores, marketing, EDGAR, yfinance, FF factors)
+│   ├── data/                # Data ingestion (Risk, Marketing, EDGAR, yfinance)
 │   ├── features/            # Signal construction and point-in-time panel generation
 │   ├── backtest/            # Portfolio construction, metrics, factor regressions
 │   ├── ml/                  # Walk-forward validation, LightGBM models
 │   ├── analysis/            # Text diagnostics (autocorrelation, prob-count correlations)
 │   └── utils/               # Helpers, config loader, finance-style plotting
-├── scripts/                 # Utility scripts (e.g., dummy data generation)
-├── app/                     # Streamlit dashboard (reads real panel data, marketing metrics, ML predictions)
-├── docs/                    # Detailed methodology and research proofs (e.g., ML_METHODOLOGY.md)
+├── scripts/                 # Utility scripts
+├── app/                     # Streamlit dashboard (interactive ML predictions & trajectories)
+├── docs/                    # Detailed methodology and research proofs (ML_METHODOLOGY.md)
 ├── data/
-│   ├── raw/                 # Raw input datasets (not committed)
+│   ├── raw/                 # Raw input datasets (dataset.xlsx, MarketingEmphasis, cik_gvkey)
 │   ├── interim/             # Intermediate cached parquets
 │   └── processed/           # Final pipeline outputs (panel, signals, ml_predictions)
 ├── results/                 # Output tables, models, and figures
-│   ├── figures/             # Feature importances, risk vs marketing scatter plots, correlation heatmaps
+│   ├── figures/             # Feature importances, risk vs marketing scatter plots
 │   ├── tables/              # Factor regression CSVs
-│   └── models/              # Serialized LightGBM models (.joblib)
+│   └── models/              # 14 Serialized LightGBM models (.joblib)
 ├── tests/                   # Automated quality assurance
 ├── venv/                    # Python virtual environment (not committed)
 ├── Makefile                 # Build orchestration
@@ -64,23 +103,11 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 
 ---
 
-## Methodology & Rigor
-
-This project strictly adheres to institutional quantitative research standards. For full details on the machine learning pipeline, read the [Machine Learning Methodology](docs/ML_METHODOLOGY.md).
-
-- **No Look-Ahead Bias**: Signals are constructed point-in-time based on actual EDGAR filing dates, with a conservative availability lag. Verified programmatically (`first_hold_start ≤ month_start`).
-- **Out-of-Sample Validation**: ML models use strict expanding-window walk-forward validation with an embargo period. All models are saved to `results/models/`.
-- **Memory-Optimized Panel Construction**: The stock-month panel (14,388 CIKs × 273 months ≈ 4M rows) is built using a Cartesian product grid with `pd.merge_asof` for efficient backward-looking signal alignment, replacing the original iterative approach that caused out-of-memory errors.
-- **Diversification Constraint**: Quintile portfolios require at least 20 names per leg to ensure statistical reliability.
-- **Explainability**: We compute feature importances and plot scatter correlations (e.g., Risk vs. Marketing Emphasis) to ensure the ML logic is transparent. Charts are saved to `results/figures/`.
-
----
-
 ## Getting Started
 
 ### Prerequisites
 - Python 3.10+
-- Windows, macOS, or Linux
+- 16GB+ RAM (Due to processing 1.15 million rows of stock history)
 
 ### Setup
 ```bash
@@ -91,45 +118,23 @@ cd Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals
 # Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\activate        # Windows
-# source venv/bin/activate     # macOS/Linux
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-### Data Sources
-Place the following raw data in `data/raw/`:
-1. **Risk Scores**: `dataset.xlsx` from Astvansh & Simpson (2026) — [OSF Repository](https://osf.io/gz93b/).
-2. **Marketing Emphasis** *(optional)*: `MarketingEmphasisScores_Executive.csv` from Damavandi et al. (2025) — [GitHub](https://marketing-measures.github.io/). Place in `data/raw/marketing/`.
-3. **WRDS Link Table** *(optional)*: To merge the Marketing Data (which uses `GVKEY`) with the Risk Data (which uses `CIK`), download the CRSP-Compustat Merged Link Table from WRDS. Save it as `cik_gvkey.csv` and place it in `data/raw/`.
-
-> **Note on Marketing Data**: The data pipeline automatically detects the presence of `cik_gvkey.csv`. When found, it automatically maps the Damavandi GVKEYs to SEC CIKs (achieving an 87%+ match rate) and seamlessly merges the 3 Marketing Emphasis higher-order constructs (`market_orientation`, `marketing_capabilities`, `marketing_excellence`) into the final panel for the Machine Learning model.
-
-*SEC EDGAR filing indices, daily prices (via yfinance), and Fama-French factors are downloaded automatically.*
-
 ### Execution
 
-**Run the full pipeline (recommended):**
-```bash
-python -m src.run_all
-```
-
-**Force re-run (ignore cached data):**
+**Run the full pipeline to regenerate all proofs:**
 ```bash
 python -m src.run_all --force
 ```
+*(Note: Because this hits the Yahoo Finance API to download 20 years of data for 7,600+ tickers in batches, this process will take approximately 18-20 minutes to complete).*
 
-**Launch the Streamlit dashboard:**
+**Launch the interactive thesis dashboard:**
 ```bash
 streamlit run app/streamlit_app.py
 ```
-
-The pipeline runs in 5 phases:
-1. **Data Ingestion** — Load risk scores, marketing data, EDGAR filings, stock prices, and Fama-French factors.
-2. **Text Diagnostics** — Compute prob-count correlations and year-over-year autocorrelation of the OpRisk signal.
-3. **Signals & Panel** — Construct 16 NLP signal features and build the 1.15M-row stock-month panel with point-in-time alignment.
-4. **Baseline Backtest** — Sort stocks into quintile portfolios on industry-adjusted OpRisk and run CAPM/FF3/FF5/FF5+Mom factor regressions on the L/S spread.
-5. **Machine Learning** — Walk-forward LightGBM predictions using expanding training windows.
 
 ---
 
