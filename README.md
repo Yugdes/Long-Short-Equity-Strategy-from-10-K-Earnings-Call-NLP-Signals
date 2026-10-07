@@ -28,8 +28,9 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 ### Key Deliverables
 1. **Backtesting Engine**: A rigorous, point-in-time, calendar-time long-short backtest with `min_names=20` diversification constraint.
 2. **Factor Attribution**: Fama-French 5-factor + Momentum regressions with Newey-West standard errors.
-3. **Machine Learning Layer**: An expanding-window walk-forward ML pipeline (LightGBM) combining 16 operational risk signal features.
-4. **Interactive Benchmark Tool**: A Streamlit application for analyzing the operational risk trajectory of individual companies versus their peers.
+3. **Machine Learning Layer**: An expanding-window walk-forward ML pipeline (LightGBM) combining 16 operational risk signal features and 3 marketing emphasis scores. Models are serialized and saved for reproducibility.
+4. **Interactive Benchmark Tool**: A Streamlit application for analyzing the operational risk trajectory and marketing strategy scores of individual companies versus their peers, including point-in-time ML expected rank.
+5. **Robust Documentation & Proofs**: Feature importances, return correlations, and ML methodology are thoroughly documented and saved as charts in the `results/` folder to prove all assertions mathematically.
 
 ---
 
@@ -45,14 +46,16 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 │   ├── analysis/            # Text diagnostics (autocorrelation, prob-count correlations)
 │   └── utils/               # Helpers, config loader, finance-style plotting
 ├── scripts/                 # Utility scripts (e.g., dummy data generation)
-├── app/                     # Streamlit dashboard (reads real panel data)
+├── app/                     # Streamlit dashboard (reads real panel data, marketing metrics, ML predictions)
+├── docs/                    # Detailed methodology and research proofs (e.g., ML_METHODOLOGY.md)
 ├── data/
 │   ├── raw/                 # Raw input datasets (not committed)
 │   ├── interim/             # Intermediate cached parquets
-│   └── processed/           # Final pipeline outputs (panel, signals, returns)
-├── results/                 # Output tables and figures
-│   ├── figures/             # Heatmaps, correlation plots
-│   └── tables/              # Factor regression CSVs
+│   └── processed/           # Final pipeline outputs (panel, signals, ml_predictions)
+├── results/                 # Output tables, models, and figures
+│   ├── figures/             # Feature importances, risk vs marketing scatter plots, correlation heatmaps
+│   ├── tables/              # Factor regression CSVs
+│   └── models/              # Serialized LightGBM models (.joblib)
 ├── tests/                   # Automated quality assurance
 ├── venv/                    # Python virtual environment (not committed)
 ├── Makefile                 # Build orchestration
@@ -63,11 +66,13 @@ The pipeline successfully ran a 20-year backtest (2004–2025) over a 500-stock 
 
 ## Methodology & Rigor
 
-This project strictly adheres to institutional quantitative research standards:
+This project strictly adheres to institutional quantitative research standards. For full details on the machine learning pipeline, read the [Machine Learning Methodology](docs/ML_METHODOLOGY.md).
+
 - **No Look-Ahead Bias**: Signals are constructed point-in-time based on actual EDGAR filing dates, with a conservative availability lag. Verified programmatically (`first_hold_start ≤ month_start`).
-- **Out-of-Sample Validation**: ML models use strict expanding-window walk-forward validation with an embargo period.
+- **Out-of-Sample Validation**: ML models use strict expanding-window walk-forward validation with an embargo period. All models are saved to `results/models/`.
 - **Memory-Optimized Panel Construction**: The stock-month panel (14,388 CIKs × 273 months ≈ 4M rows) is built using a Cartesian product grid with `pd.merge_asof` for efficient backward-looking signal alignment, replacing the original iterative approach that caused out-of-memory errors.
 - **Diversification Constraint**: Quintile portfolios require at least 20 names per leg to ensure statistical reliability.
+- **Explainability**: We compute feature importances and plot scatter correlations (e.g., Risk vs. Marketing Emphasis) to ensure the ML logic is transparent. Charts are saved to `results/figures/`.
 
 ---
 

@@ -34,15 +34,22 @@ def load_data():
         panel["op_risk_pct"] = panel.groupby("year")["S1_OpRisk"].rank(pct=True) * 100
         panel["non_op_risk_pct"] = panel.groupby("year")["S2_NonOpRisk"].rank(pct=True) * 100
         
+        # Marketing metrics if available
+        has_marketing = "market_orientation" in panel.columns
+        agg_dict = {
+            "op_risk_pct": "mean",
+            "non_op_risk_pct": "mean"
+        }
+        if has_marketing:
+            agg_dict["market_orientation"] = "mean"
+            agg_dict["marketing_capabilities"] = "mean"
+            
         # Get industry from ffi48 or sic
         # The Astvansh dataset might have ffi48 or we can just group by all stocks as one industry
         panel["industry"] = "All"
         
         # Aggregate to yearly for the app
-        df = panel.groupby(["ticker", "year", "industry"]).agg({
-            "op_risk_pct": "mean",
-            "non_op_risk_pct": "mean"
-        }).reset_index()
+        df = panel.groupby(["ticker", "year", "industry"]).agg(agg_dict).reset_index()
         
         # Industry medians
         ind_med = df.groupby(["industry", "year"])["op_risk_pct"].median().reset_index()
@@ -55,10 +62,19 @@ def load_data():
         valid_tickers = counts[counts >= 5].index
         df = df[df["ticker"].isin(valid_tickers)]
         
-        return df
+        # Load ML predictions if available
+        ml_file = Path("data/processed/ml_predictions.parquet")
+        if ml_file.exists():
+            ml_df = pd.read_parquet(ml_file)
+            if "year" not in ml_df.columns:
+                ml_df["year"] = ml_df["month_start"].dt.year if "month_start" in ml_df.columns else ml_df["month"].dt.year
+            ml_agg = ml_df.groupby(["ticker", "year"])["ml_prediction"].mean().reset_index()
+            df = df.merge(ml_agg, on=["ticker", "year"], how="left")
+            
+        return df, has_marketing
     except Exception as e:
         st.error(f"Failed to load real data: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(), False
 
 # --- Main App ---
 st.title("📊 Operational Risk Benchmark")
@@ -67,7 +83,7 @@ st.markdown("""
 """)
 
 try:
-    df = load_data()
+    df, has_marketing = load_data()
     
     # Sidebar
     st.sidebar.header("Configuration")
@@ -79,15 +95,24 @@ try:
     latest_data = company_data[company_data["year"] == latest_year].iloc[0]
     
     # Top Row Metrics
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     op_risk = latest_data["op_risk_pct"]
     prev_op_risk = company_data[company_data["year"] == latest_year - 1]["op_risk_pct"].iloc[0] if len(company_data) > 1 else op_risk
     delta = op_risk - prev_op_risk
     
-    col1.metric("Operational Risk Percentile", f"{op_risk:.1f}", f"{delta:.1f} YoY")
-    col2.metric("Non-Operational Risk Percentile", f"{latest_data['non_op_risk_pct']:.1f}")
-    col3.metric("Industry", latest_data["industry"])
+    col1.metric("Operational Risk %ile", f"{op_risk:.1f}", f"{delta:.1f} YoY")
+    col2.metric("Non-Op Risk %ile", f"{latest_data['non_op_risk_pct']:.1f}")
+    
+    if has_marketing and "market_orientation" in latest_data:
+        mkt_score = latest_data["market_orientation"]
+        prev_mkt = company_data[company_data["year"] == latest_year - 1]["market_orientation"].iloc[0] if len(company_data) > 1 else mkt_score
+        mkt_delta = mkt_score - prev_mkt
+        col3.metric("Mktg Orientation Score", f"{mkt_score:.2f}", f"{mkt_delta:.2f} YoY")
+    else:
+        col3.metric("Mktg Orientation Score", "N/A")
+        
+    col4.metric("Industry", latest_data["industry"])
     
     # Time Series Chart
     st.subheader("Risk Evolution vs Industry Peer Median")
@@ -102,6 +127,20 @@ try:
                                                  
     fig.update_layout(yaxis_range=[0, 100], hovermode="x unified")
     st.plotly_chart(fig, use_container_width=True)
+
+    if has_marketing and "market_orientation" in company_data.columns:
+        st.subheader("Marketing Emphasis Over Time")
+        fig_mkt = px.line(company_data, x="year", y=["market_orientation", "marketing_capabilities"],
+                          title=f"{selected_ticker} Marketing Strategy Scores")
+        st.plotly_chart(fig_mkt, use_container_width=True)
+        
+    if "ml_prediction" in company_data.columns:
+        st.subheader("Machine Learning: Expected Excess Return Rank")
+        st.markdown("Higher rank implies the ML model expects higher excess returns relative to peers next month.")
+        fig_ml = px.bar(company_data.dropna(subset=["ml_prediction"]), x="year", y="ml_prediction",
+                        title=f"{selected_ticker} ML Expected Rank (Z-Score/Normalized)")
+        st.plotly_chart(fig_ml, use_container_width=True)
+        
     
 except Exception as e:
     st.error(f"Error loading data: {e}")
