@@ -126,31 +126,68 @@ def build_returns_table(
     force: bool = False,
 ) -> pd.DataFrame:
     """
-    Full pipeline: download daily prices → compute monthly returns.
-    Caches the raw daily data and the final monthly returns.
+    Full pipeline: download daily prices chunk-by-chunk and compute monthly returns.
+    Caches the final monthly returns. Bypasses raw daily caching to prevent 45M row OOM.
     """
     cfg = load_config()
     out_file = Path(get_path(cfg, "processed")) / "returns_monthly.parquet"
-    raw_cache = Path(get_path(cfg, "interim")) / "daily_prices.parquet"
 
     if parquet_exists(out_file) and not force:
         logger.info(f"Loading cached returns from {out_file}")
         return load_parquet(out_file)
 
-    # Download or load cached daily prices
-    if parquet_exists(raw_cache) and not force:
-        logger.info("Loading cached daily prices...")
-        daily = load_parquet(raw_cache)
-    else:
-        logger.info(f"Downloading prices for {len(tickers)} tickers...")
-        daily = _download_yfinance_batch(tickers, start=start, end=end)
-        if daily.empty:
-            raise RuntimeError("No price data downloaded")
-        save_parquet(daily, raw_cache)
-        logger.info(f"Cached {len(daily)} daily price rows")
+    logger.info(f"Downloading prices for {len(tickers)} tickers in memory-efficient chunks...")
+    
+    import yfinance as yf
+    batch_size = 50
+    all_monthly = []
+    n_batches = (len(tickers) + batch_size - 1) // batch_size
 
-    # Compute monthly returns
-    monthly = compute_monthly_returns(daily)
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i + batch_size]
+        batch_num = i // batch_size + 1
+        logger.info(f"Downloading batch {batch_num}/{n_batches} ({len(batch)} tickers)...")
+
+        try:
+            df = yf.download(
+                batch,
+                start=start,
+                end=end,
+                auto_adjust=True,
+                threads=True,
+                progress=False,
+            )
+
+            if df.empty:
+                logger.warning(f"Empty data for batch {batch_num}")
+                continue
+
+            if isinstance(df.columns, pd.MultiIndex):
+                df = df.stack(level=1, future_stack=True).rename_axis(["date", "ticker"]).reset_index()
+                df.columns = [str(c).lower() for c in df.columns]
+            else:
+                df = df.reset_index()
+                df.columns = [str(c).lower() for c in df.columns]
+                df["ticker"] = batch[0]
+
+            if "close" not in df.columns or "volume" not in df.columns:
+                continue
+
+            # Compute monthly returns immediately for this chunk! Drops size by 21x.
+            monthly_batch = compute_monthly_returns(df)
+            all_monthly.append(monthly_batch)
+
+        except Exception as e:
+            logger.error(f"Error downloading batch {batch_num}: {e}")
+            
+        time.sleep(1.0)
+
+    if not all_monthly:
+        raise RuntimeError("No price data downloaded")
+
+    # Only concat the compressed monthly data
+    monthly = pd.concat(all_monthly, ignore_index=True)
+    
     logger.info(f"Monthly returns: {len(monthly)} rows, "
                 f"{monthly['ticker'].nunique()} tickers, "
                 f"{monthly['month'].min()} – {monthly['month'].max()}")
