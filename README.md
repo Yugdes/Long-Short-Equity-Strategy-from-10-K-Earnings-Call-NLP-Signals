@@ -96,8 +96,9 @@ pip install -r requirements.txt
 Place the following raw data in `data/raw/`:
 1. **Risk Scores**: `dataset.xlsx` from Astvansh & Simpson (2026) — [OSF Repository](https://osf.io/gz93b/).
 2. **Marketing Emphasis** *(optional)*: `MarketingEmphasisScores_Executive.csv` from Damavandi et al. (2025) — [GitHub](https://marketing-measures.github.io/). Place in `data/raw/marketing/`.
+3. **WRDS Link Table** *(optional)*: To merge the Marketing Data (which uses `GVKEY`) with the Risk Data (which uses `CIK`), download the CRSP-Compustat Merged Link Table from WRDS. Save it as `cik_gvkey.csv` and place it in `data/raw/`.
 
-> **Note on Marketing Data**: The marketing dataset uses Compustat `GVKEY` identifiers while the risk dataset uses SEC `CIK`. Merging them requires a WRDS `gvkey-cik` crosswalk table. Without WRDS access, the pipeline gracefully skips the marketing merge and trains purely on the 16 operational risk features.
+> **Note on Marketing Data**: The data pipeline automatically detects the presence of `cik_gvkey.csv`. When found, it automatically maps the Damavandi GVKEYs to SEC CIKs (achieving an 87%+ match rate) and seamlessly merges the 3 Marketing Emphasis higher-order constructs (`market_orientation`, `marketing_capabilities`, `marketing_excellence`) into the final panel for the Machine Learning model.
 
 *SEC EDGAR filing indices, daily prices (via yfinance), and Fama-French factors are downloaded automatically.*
 
