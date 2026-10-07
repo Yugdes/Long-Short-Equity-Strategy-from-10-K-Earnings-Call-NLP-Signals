@@ -130,7 +130,7 @@ def create_metric_card(title, value, delta=None, delta_text="YoY", inverse_color
 def load_ml_model():
     """Loads the latest walk-forward ML model."""
     try:
-        model_path = Path("results/models/lightgbm_split_14.joblib")
+        model_path = Path("results/models/lightgbm_split_13.joblib")
         if model_path.exists():
             return joblib.load(model_path)
     except Exception as e:
