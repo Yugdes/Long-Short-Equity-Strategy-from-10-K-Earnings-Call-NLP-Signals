@@ -36,8 +36,8 @@ def run_pipeline(force: bool = False):
     filings = build_filings_table(force=force)
     sec = build_security_master(risk_ciks=risk["cik"] if not risk.empty else None, force=force)
     
-    # Note: Dummy tickers for the skeleton
-    tickers = ["AAPL", "MSFT", "XOM", "JPM", "WMT"] if not sec.empty else []
+    # Use the full universe of tickers available in the security master
+    tickers = sec["ticker"].dropna().unique().tolist() if not sec.empty else []
     rets = build_returns_table(tickers=tickers, force=force)
     factors = download_ff_factors(force=force)
     
