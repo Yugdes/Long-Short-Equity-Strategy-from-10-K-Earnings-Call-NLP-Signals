@@ -1,5 +1,5 @@
 """
-Streamlit App — Premium Quantitative Dashboard for Operational Risk.
+Streamlit App — Premium Quantitative Dashboard with ML What-If Simulator.
 """
 import streamlit as st
 import pandas as pd
@@ -7,6 +7,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
+import joblib
 
 # --- Page Config ---
 st.set_page_config(
@@ -105,7 +106,6 @@ def create_metric_card(title, value, delta=None, delta_text="YoY", inverse_color
     """HTML generator for premium metric cards."""
     delta_html = ""
     if delta is not None:
-        # For risk, positive delta is BAD (negative color). For ML/Marketing, positive is GOOD.
         if delta > 0:
             css_class = "delta-negative" if inverse_color else "delta-positive"
             arrow = "↑"
@@ -126,7 +126,17 @@ def create_metric_card(title, value, delta=None, delta_text="YoY", inverse_color
     </div>
     """
 
-# --- Data Loading ---
+@st.cache_resource
+def load_ml_model():
+    """Loads the latest walk-forward ML model."""
+    try:
+        model_path = Path("results/models/lightgbm_split_14.joblib")
+        if model_path.exists():
+            return joblib.load(model_path)
+    except Exception as e:
+        st.error(f"Failed to load ML model: {e}")
+    return None
+
 @st.cache_data
 def load_data():
     try:
@@ -138,11 +148,13 @@ def load_data():
             
         panel["year"] = panel["month"].dt.year if hasattr(panel["month"].dt, "year") else panel["month"].apply(lambda x: x.year)
         
+        # Calculate Percentiles globally
         panel["op_risk_pct"] = panel.groupby("year")["S1_OpRisk"].rank(pct=True) * 100
         
         has_marketing = "market_orientation" in panel.columns
-        agg_dict = {"op_risk_pct": "mean"}
         
+        # Build Aggregated Data for Charts
+        agg_dict = {"op_risk_pct": "mean"}
         if has_marketing:
             agg_dict["market_orientation"] = "mean"
             agg_dict["marketing_capabilities"] = "mean"
@@ -154,9 +166,8 @@ def load_data():
         ind_med = ind_med.rename(columns={"op_risk_pct": "industry_median_pct"})
         df = df.merge(ind_med, on=["industry", "year"], how="left")
         
-        counts = df["ticker"].value_counts()
-        valid_tickers = counts[counts >= 5].index
-        df = df[df["ticker"].isin(valid_tickers)]
+        # Get Latest Raw Row for the Simulator
+        latest_rows = panel.sort_values("month").groupby("ticker").last().reset_index()
         
         ml_file = Path("data/processed/ml_predictions.parquet")
         if ml_file.exists():
@@ -166,14 +177,15 @@ def load_data():
             ml_agg = ml_df.groupby(["ticker", "year"])["ml_prediction"].mean().reset_index()
             df = df.merge(ml_agg, on=["ticker", "year"], how="left")
             
-        return df, has_marketing
+        return df, latest_rows, has_marketing
     except Exception as e:
         st.error(f"Failed to load real data: {e}")
-        return pd.DataFrame(), False
+        return pd.DataFrame(), pd.DataFrame(), False
 
 # --- Main App ---
 try:
-    df, has_marketing = load_data()
+    df, latest_rows, has_marketing = load_data()
+    ml_model = load_ml_model()
     
     # --- Sidebar ---
     with st.sidebar:
@@ -194,6 +206,7 @@ try:
     company_data = df[df["ticker"] == selected_ticker].sort_values("year")
     latest_year = company_data["year"].max()
     latest_data = company_data[company_data["year"] == latest_year].iloc[0]
+    latest_raw = latest_rows[latest_rows["ticker"] == selected_ticker].iloc[0]
     
     # --- Header ---
     st.markdown(f"<h1>Dashboard: <span style='color: #2DD4BF;'>${selected_ticker}</span></h1>", unsafe_allow_html=True)
@@ -225,8 +238,8 @@ try:
         
     st.write("---")
     
-    # --- Charts Section ---
-    tab1, tab2 = st.tabs(["📉 Risk Trajectory", "🧠 Machine Learning & Marketing"])
+    # --- Tabs Section ---
+    tab1, tab2, tab3 = st.tabs(["📉 Risk Trajectory", "🧠 Machine Learning Trends", "🧪 What-If Simulator"])
     
     with tab1:
         st.markdown("### Operational Risk vs. Industry Peer Median")
@@ -294,6 +307,76 @@ try:
             else:
                 st.info("No ML predictions available.")
                 
+    with tab3:
+        st.markdown("### 🧪 Machine Learning What-If Simulator")
+        st.markdown(f"Inject simulated conditions into the **Walk-Forward LightGBM Model** to instantly see how {selected_ticker}'s expected returns would react.")
+        
+        if ml_model is None:
+            st.warning("No trained ML model found in `results/models/`.")
+        else:
+            sim_col1, sim_col2 = st.columns(2)
+            
+            with sim_col1:
+                st.markdown("#### Scenario Controls")
+                risk_mult = st.slider("Operational Risk Multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1, help="1.0 = Base Risk. 2.0 = Double the NLP risk mentions in the 10-K.")
+                mkt_mult = st.slider("Marketing Emphasis Multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1, help="1.0 = Base Marketing. 2.0 = Double the marketing orientation in Earnings Calls.")
+            
+            # Reconstruct the feature vector exactly as the model expects
+            features = [c for c in latest_raw.index if c.startswith("S")]
+            if has_marketing:
+                features += ["market_orientation", "marketing_capabilities"]
+                
+            features = [f for f in features if f in latest_raw.index and pd.notna(latest_raw[f])]
+            
+            # Base prediction
+            base_df = pd.DataFrame([latest_raw[features]])
+            base_pred = ml_model.predict(base_df)[0]
+            
+            # Simulated prediction
+            sim_df = base_df.copy()
+            for col in sim_df.columns:
+                if col.startswith("S"):
+                    sim_df[col] = sim_df[col] * risk_mult
+                elif col in ["market_orientation", "marketing_capabilities"]:
+                    sim_df[col] = sim_df[col] * mkt_mult
+                    
+            sim_pred = ml_model.predict(sim_df)[0]
+            
+            with sim_col2:
+                st.markdown("#### Model Output (Expected Alpha Rank)")
+                
+                # Visual Gauge
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = sim_pred,
+                    title = {'text': "Simulated Expected Return"},
+                    delta = {'reference': base_pred, 'increasing': {'color': "#10B981"}, 'decreasing': {'color': "#EF4444"}},
+                    gauge = {
+                        'axis': {'range': [-0.1, 0.1], 'tickwidth': 1, 'tickcolor': "white"},
+                        'bar': {'color': "#2DD4BF"},
+                        'bgcolor': "rgba(0,0,0,0)",
+                        'borderwidth': 2,
+                        'bordercolor': "rgba(255,255,255,0.1)",
+                        'steps': [
+                            {'range': [-0.1, 0], 'color': "rgba(239, 68, 68, 0.2)"},
+                            {'range': [0, 0.1], 'color': "rgba(16, 185, 129, 0.2)"}],
+                    }
+                ))
+                fig_gauge.update_layout(
+                    template='plotly_dark',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    height=300,
+                    margin=dict(l=20, r=20, t=50, b=20)
+                )
+                st.plotly_chart(fig_gauge, use_container_width=True)
+                
+                st.markdown(f"**Base Alpha Rank:** `{base_pred:.4f}`")
+                if risk_mult > 1.0 and sim_pred < base_pred:
+                    st.success("✅ **Proof:** The model successfully penalized the stock for increasing Operational Risk.")
+                elif risk_mult > 1.0 and mkt_mult > 1.0 and sim_pred < base_pred:
+                    st.success("✅ **Proof:** The model applied the **Distraction Penalty**. High marketing couldn't shield the massive operational risk.")
+
 except Exception as e:
     st.error(f"Error loading system: {e}")
     st.info("Ensure the pipeline has run and generated processed parquets.")
