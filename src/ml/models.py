@@ -21,7 +21,7 @@ def train_lightgbm(
     y_val: Optional[pd.Series],
     X_test: pd.DataFrame,
     num_leaves: int = 31,
-    min_data_in_leaf: int = 500,
+    min_data_in_leaf: int = 20,
     learning_rate: float = 0.03,
     feature_fraction: float = 0.7,
     n_estimators: int = 800,

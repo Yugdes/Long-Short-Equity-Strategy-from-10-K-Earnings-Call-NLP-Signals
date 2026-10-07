@@ -114,6 +114,12 @@ def ingest_marketing_scores(
         # Conservative: available 60 days after quarter end
         df["avail_date"] = df["quarter_end"] + pd.Timedelta(days=60)
 
+    # ── Compute Higher-Order Constructs ──────────────────────────────────
+    if "customer_orientation" in df.columns:
+        df["market_orientation"] = df[["customer_orientation", "competitor_orientation", "interfunctional_coordination"]].mean(axis=1)
+        df["marketing_capabilities"] = df[["pricing_capabilities", "product_development", "channel_management", "communication", "selling_capabilities"]].mean(axis=1)
+        df["marketing_excellence"] = df[["marketing_ecosystem", "end_user", "marketing_agility"]].mean(axis=1)
+
     # ── Summary ──────────────────────────────────────────────────────────
     logger.info(f"Marketing scores shape: {df.shape}")
     if "year" in df.columns:
