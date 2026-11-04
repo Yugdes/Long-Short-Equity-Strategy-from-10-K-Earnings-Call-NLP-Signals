@@ -156,18 +156,25 @@ def build_filings_table(
         filings["date_filed"].dt.year,
     )
 
-    # For each CIK-fiscal_year, keep the earliest original 10-K
-    originals = filings[~filings["is_amendment"]].copy()
-    originals = originals.sort_values("date_filed").groupby(
+    # Prioritize original 10-K over 10-K/A, but retain 10-K/A if original is missing.
+    # Sorting by is_amendment (False < True) places 10-K before 10-K/A.
+    # Sorting by date_filed ascending picks the earliest filing within each category.
+    filings_sorted = filings.sort_values(
+        by=["cik", "fiscal_year_approx", "is_amendment", "date_filed"],
+        ascending=[True, True, True, True]
+    )
+    deduped = filings_sorted.groupby(
         ["cik", "fiscal_year_approx"]
     ).first().reset_index()
 
     logger.info(f"Total 10-K filings: {len(filings)}")
-    logger.info(f"Unique CIK-fiscal_year pairs (originals): {len(originals)}")
+    n_orig = (~deduped['is_amendment']).sum()
+    n_amend = deduped['is_amendment'].sum()
+    logger.info(f"Retained CIK-fiscal_year pairs: {len(deduped)} (Originals: {n_orig}, Amendments recovered: {n_amend})")
 
-    save_parquet(originals, out_file)
+    save_parquet(deduped, out_file)
     logger.info(f"Saved filings.parquet to {out_file}")
-    return originals
+    return deduped
 
 
 def reconcile_filing_years(

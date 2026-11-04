@@ -46,3 +46,7 @@ reports/*.pptx
 
 # Logs
 *.log
+
+# Audit & Stage Remediation Reports (internal working documents)
+INDEPENDENT_AUDIT_REPORT.md
+0[1-5]_*.md

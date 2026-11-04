@@ -56,29 +56,48 @@ def build_signals(
     df = risk_scores.copy()
 
     # ── Merge filing dates ───────────────────────────────────────────────
+    filing_cols = ["cik", "fiscal_year_approx", "date_filed"]
+    if "is_amendment" in filings.columns:
+        filing_cols.append("is_amendment")
+
     if not filings.empty:
         df = df.merge(
-            filings[["cik", "fiscal_year_approx", "date_filed"]].rename(
+            filings[filing_cols].rename(
                 columns={"fiscal_year_approx": "year"}
             ),
             on=["cik", "year"],
             how="left",
         )
-        # Fill missing filing dates (due to imperfect matching) with 90-day fallback
-        fallback = pd.to_datetime(df["year"].astype(str) + "-03-31")
-        df["date_filed"] = df["date_filed"].fillna(fallback)
     else:
-        # Fallback: assume filed ~90 days after fiscal year end
-        df["date_filed"] = pd.to_datetime(df["year"].astype(str) + "-03-31")
+        df["date_filed"] = pd.NaT
+        if "is_amendment" in filing_cols:
+            df["is_amendment"] = False
+
+    # Flag missing filing dates explicitly (do NOT impute fabricated dates)
+    df["is_missing_filing_date"] = df["date_filed"].isna()
+    n_missing = int(df["is_missing_filing_date"].sum())
+    pct_missing = float(df["is_missing_filing_date"].mean()) if len(df) > 0 else 0.0
+    logger.info(f"Filing date matching: {len(df) - n_missing} matched, {n_missing} ({pct_missing:.2%}) missing actual publication date.")
 
     # ── Point-in-time availability ───────────────────────────────────────
     lag_bdays = cfg.get("signal", {}).get("availability_lag_bdays", 2)
     df["date_filed"] = pd.to_datetime(df["date_filed"])
-    df["signal_date"] = df["date_filed"] + pd.offsets.BDay(lag_bdays)
 
-    # First holding month = first full calendar month after signal date
-    month_end = df["signal_date"] + pd.offsets.MonthEnd(0)
-    df["first_hold_month"] = (month_end + pd.offsets.MonthBegin(1)).dt.to_period("M")
+    valid_mask = ~df["is_missing_filing_date"]
+    df["signal_date"] = pd.NaT
+    df["first_hold_month"] = pd.PeriodIndex([pd.NaT] * len(df), freq="M")
+
+    if valid_mask.any():
+        valid_signal_dates = df.loc[valid_mask, "date_filed"] + pd.offsets.BDay(lag_bdays)
+        df.loc[valid_mask, "signal_date"] = valid_signal_dates
+        month_end = valid_signal_dates + pd.offsets.MonthEnd(0)
+        df.loc[valid_mask, "first_hold_month"] = (month_end + pd.offsets.MonthBegin(1)).dt.to_period("M")
+
+    # Exclude missing filing dates from primary point-in-time backtest universe
+    exclude_missing = cfg.get("signal", {}).get("exclude_missing_filings", True)
+    if exclude_missing and n_missing > 0:
+        logger.info(f"Primary specification: Excluding {n_missing} observations lacking actual filing dates.")
+        df = df[valid_mask].copy()
 
     # ── Merge industry codes ─────────────────────────────────────────────
     if not security_master.empty and "ff48" in security_master.columns:

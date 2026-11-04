@@ -101,24 +101,36 @@ def build_stock_month_panel(
         if "cik" not in marketing.columns:
             logger.warning("Marketing data lacks 'cik' column! Cannot merge. You need a WRDS gvkey-cik link table.")
         else:
-            mktg = marketing.sort_values("avail_date")
+            mktg_cols = ["cik", "avail_date"] + [
+                c for c in ["market_orientation", "marketing_capabilities", "marketing_excellence"]
+                if c in marketing.columns
+            ]
+            mktg = marketing[mktg_cols].sort_values("avail_date")
             panel = panel.sort_values("month_start")
+            
+            # Marketing staleness tolerance: default 210 days (supports semiannual cadence + grace period)
+            mktg_tol_days = cfg.get("marketing", {}).get("staleness_tolerance_days", 210)
             
             merged_m = pd.merge_asof(
                 panel,
-                mktg[["cik", "avail_date", "market_orientation", "marketing_capabilities", "marketing_excellence"]].sort_values("avail_date"),
+                mktg,
                 left_on="month_start",
                 right_on="avail_date",
                 by="cik",
-                direction="backward"
+                direction="backward",
+                tolerance=pd.Timedelta(days=mktg_tol_days),
             )
             panel = merged_m
             
-            # Fill NA marketing scores with median or 0 for ML
+            # Flag whether the observation has a fresh, valid point-in-time marketing score
+            panel["has_marketing_data"] = panel["avail_date"].notna()
+            
+            # Preserve raw scores for empirical tests, and provide imputed versions for ML
             for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
                 if col in panel.columns:
+                    panel[f"{col}_raw"] = panel[col]
                     panel[col] = panel.groupby("month")[col].transform(lambda x: x.fillna(x.median()))
-                    panel[col] = panel[col].fillna(0) # Global fallback
+                    panel[col] = panel[col].fillna(0) # Global fallback for ML
                 
     # ── Step 3: Merge returns ────────────────────────────────────────────
     if not returns.empty:
@@ -136,24 +148,68 @@ def build_stock_month_panel(
                 how="left",
             )
 
-    # ── Step 4: Forward returns ──────────────────────────────────────────
+    # ── Step 4: Forward returns & Factor alignment ────────────────────────
     if "ret" in panel.columns:
         panel = panel.sort_values(["cik", "month"])
-        panel["ret_next"] = panel.groupby("cik")["ret"].shift(-1)
+        
+        # User decision 6: Strict calendar continuity check for forward returns.
+        # If month t is missing month t+1 (e.g. Jan followed by Jun), ret_next must be NaN.
+        panel["_month_period"] = panel["month"].apply(
+            lambda m: m if isinstance(m, pd.Period) else pd.Period(m, freq="M")
+        )
+        panel["_next_month_period"] = panel.groupby("cik")["_month_period"].shift(-1)
+        is_consecutive = panel["_next_month_period"] == (panel["_month_period"] + 1)
+        
+        raw_ret_next = panel.groupby("cik")["ret"].shift(-1)
+        panel["ret_next"] = np.where(is_consecutive, raw_ret_next, np.nan)
+        panel = panel.drop(columns=["_next_month_period"])
 
         # Excess return (subtract RF)
         if not factors.empty:
+            factors_copy = factors.copy()
+            if "month" in factors_copy.columns:
+                factors_copy["_month_period"] = factors_copy["month"].apply(
+                    lambda m: m if isinstance(m, pd.Period) else pd.Period(m, freq="M")
+                )
+            
+            # 1. Contemporaneous RF for return earned in month t: ret - RF_t
+            factors_curr = factors_copy[["_month_period", "RF"]].drop_duplicates(subset=["_month_period"])
             panel = panel.merge(
-                factors[["month", "RF"]],
-                on="month",
+                factors_curr.rename(columns={"RF": "RF"}),
+                on="_month_period",
                 how="left",
             )
-            panel["excess_ret_next"] = panel["ret_next"] - panel["RF"]
+            panel["excess_ret"] = np.where(
+                panel["ret"].notna() & panel["RF"].notna(),
+                panel["ret"] - panel["RF"],
+                np.nan,
+            )
+            
+            # 2. Forward RF for return earned in month t+1: ret_next - RF_{t+1}
+            # Shift factor join key by -1 month so that month t aligns with RF_{t+1}
+            factors_next = factors_copy[["_month_period", "RF"]].drop_duplicates(subset=["_month_period"]).copy()
+            factors_next["_month_period"] = factors_next["_month_period"] - 1
+            factors_next = factors_next.rename(columns={"RF": "RF_next"})
+            
+            panel = panel.merge(
+                factors_next,
+                on="_month_period",
+                how="left",
+            )
+            panel["excess_ret_next"] = np.where(
+                panel["ret_next"].notna() & panel["RF_next"].notna(),
+                panel["ret_next"] - panel["RF_next"],
+                np.nan,
+            )
+            
+            panel = panel.drop(columns=["_month_period"])
 
             # Rank-transform for ML target
             panel["rank_excess_ret_next"] = panel.groupby("month")[
                 "excess_ret_next"
             ].rank(pct=True) - 0.5
+        else:
+            panel = panel.drop(columns=["_month_period"])
 
     # ── Step 5: Characteristics ──────────────────────────────────────────
     if "price_end" in panel.columns and "volume_avg" in panel.columns:

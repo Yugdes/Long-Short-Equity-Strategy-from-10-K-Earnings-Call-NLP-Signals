@@ -38,7 +38,7 @@ def assign_quantiles(
 def compute_portfolio_returns(
     panel: pd.DataFrame,
     signal_col: str,
-    return_col: str = "ret_next",
+    return_col: str = "ret",
     n_quantiles: int = 5,
     weighting: str = "value",
     weight_cap: float = 0.05,
@@ -54,7 +54,8 @@ def compute_portfolio_returns(
     signal_col : str
         Column name of the signal to sort on
     return_col : str
-        Column name of forward returns
+        Column name of returns ('ret' for contemporaneous holding month;
+        'ret_next' will shift index to t+1 realization month)
     n_quantiles : int
         Number of portfolios (default 5 for quintiles)
     weighting : str
@@ -123,6 +124,17 @@ def compute_portfolio_returns(
     ret_df.index.name = "month"
     ret_df = ret_df.sort_index()
 
+    # User decision 3 & 4: Factor and investment timing alignment.
+    # If returns are computed on ret_next, the returns were earned in month t+1.
+    # Shift the index to month t+1 so the return index matches the factor realization month.
+    if return_col == "ret_next":
+        shifted_index = [
+            (m + 1) if isinstance(m, pd.Period) else (pd.Period(m, freq="M") + 1)
+            for m in ret_df.index
+        ]
+        ret_df.index = shifted_index
+        ret_df.index.name = "month"
+
     stats_df = pd.DataFrame(port_stats)
 
     logger.info(f"Portfolio returns: {len(ret_df)} months, "
@@ -135,7 +147,7 @@ def compute_double_sort_returns(
     panel: pd.DataFrame,
     signal1_col: str,
     signal2_col: str,
-    return_col: str = "ret_next",
+    return_col: str = "ret",
     n1: int = 3,
     n2: int = 3,
     weighting: str = "equal",

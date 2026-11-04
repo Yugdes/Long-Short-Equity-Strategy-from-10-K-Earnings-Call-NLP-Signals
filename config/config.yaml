@@ -35,6 +35,11 @@ signal:
   n_quantiles: 5
   holding_months: 12
   availability_lag_bdays: 2
+  exclude_missing_filings: true   # strictly exclude observations lacking actual publication dates
+
+# --- Marketing data settings ---
+marketing:
+  staleness_tolerance_days: 210   # accommodate quarterly & semiannual reporting (prunes lapsed filers > 7 mos)
 
 # --- Portfolio construction ---
 portfolio:

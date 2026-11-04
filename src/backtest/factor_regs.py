@@ -4,7 +4,10 @@ standard errors, and Fama-MacBeth cross-sectional regressions.
 """
 import pandas as pd
 import numpy as np
-import statsmodels.api as sm
+try:
+    import statsmodels.api as sm
+except ImportError:
+    sm = None
 from typing import Dict, Optional, List, Tuple
 
 from src.utils.helpers import load_config, setup_logging
@@ -23,8 +26,9 @@ FACTOR_MODELS = {
 def run_factor_regression(
     portfolio_returns: pd.Series,
     factors: pd.DataFrame,
-    model: str = "FF5+Mom",
+    model: str = "FF5_Mom",
     nw_lags: int = 6,
+    is_long_short: bool = True,
 ) -> Dict:
     """
     Run a time-series factor regression with Newey-West HAC standard errors.
@@ -39,6 +43,9 @@ def run_factor_regression(
         One of "CAPM", "FF3", "FF5", "FF5+Mom"
     nw_lags : int
         Number of Newey-West lags (default 6; also test 12)
+    is_long_short : bool
+        If True (default), y is raw spread return (RF cancels out).
+        If False, y is excess return (port_ret - RF).
 
     Returns
     -------
@@ -46,23 +53,49 @@ def run_factor_regression(
     """
     factor_cols = FACTOR_MODELS[model]
 
-    # Align dates
-    if hasattr(portfolio_returns.index, "to_timestamp"):
-        portfolio_returns.index = portfolio_returns.index.to_timestamp()
-    if "month" in factors.columns:
-        factors = factors.set_index("month")
-        if hasattr(factors.index, "to_timestamp"):
-            factors.index = factors.index.to_timestamp()
+    # Align dates: standardize both indices to monthly timestamps (YYYY-MM-01)
+    p_ret = portfolio_returns.copy()
+    if hasattr(p_ret.index, "to_timestamp"):
+        p_ret.index = p_ret.index.to_timestamp()
+    else:
+        p_ret.index = pd.PeriodIndex(p_ret.index, freq="M").to_timestamp()
+
+    f_df = factors.copy()
+    if "month" in f_df.columns:
+        f_df = f_df.set_index("month")
+    if hasattr(f_df.index, "to_timestamp"):
+        f_df.index = f_df.index.to_timestamp()
+    else:
+        f_df.index = pd.PeriodIndex(f_df.index, freq="M").to_timestamp()
 
     # Merge and drop NAs
-    merged = pd.DataFrame({"port_ret": portfolio_returns}).join(factors[factor_cols], how="inner")
+    cols_to_join = list(factor_cols)
+    if not is_long_short and "RF" not in cols_to_join and "RF" in f_df.columns:
+        cols_to_join.append("RF")
+
+    merged = pd.DataFrame({"port_ret": p_ret}).join(f_df[cols_to_join], how="inner")
     merged = merged.dropna()
 
     if len(merged) < 24:
         logger.warning(f"Only {len(merged)} observations — regression may be unreliable")
+    else:
+        logger.info(
+            f"Factor regression ({model}): aligned {len(merged)} contemporaneous realization months "
+            f"from {merged.index.min().strftime('%Y-%m')} to {merged.index.max().strftime('%Y-%m')}"
+        )
 
-    # Dependent variable (for L/S, use raw returns; for long-only, subtract RF)
-    y = merged["port_ret"]
+    # Dependent variable: for zero-cost L/S spread, raw returns; for long-only, excess returns (minus RF)
+    if not is_long_short and "RF" in merged.columns:
+        y = merged["port_ret"] - merged["RF"]
+    else:
+        y = merged["port_ret"]
+
+    if sm is None:
+        raise ImportError(
+            "statsmodels is required to run factor regressions with Newey-West standard errors. "
+            "Please install statsmodels (`pip install statsmodels`)."
+        )
+
     X = sm.add_constant(merged[factor_cols])
 
     # OLS with Newey-West HAC standard errors
@@ -106,6 +139,7 @@ def run_all_factor_models(
     portfolio_returns: pd.Series,
     factors: pd.DataFrame,
     nw_lags: int = 6,
+    is_long_short: bool = True,
 ) -> pd.DataFrame:
     """
     Run CAPM, FF3, FF5, and FF5+Mom regressions.
@@ -115,7 +149,7 @@ def run_all_factor_models(
     for model_name in FACTOR_MODELS:
         try:
             res = run_factor_regression(
-                portfolio_returns, factors, model=model_name, nw_lags=nw_lags
+                portfolio_returns, factors, model=model_name, nw_lags=nw_lags, is_long_short=is_long_short
             )
             # Remove the statsmodels object for serialization
             res.pop("result_obj", None)

@@ -106,13 +106,31 @@ def ingest_marketing_scores(
         df["year"] = df["date"].dt.year
         df["quarter"] = df["date"].dt.quarter
 
-    # Compute quarter-end date and conservative availability date
-    if "year" in df.columns and "quarter" in df.columns:
+    # Check for actual call/transcript publication date before falling back to quarter_end + 60d
+    call_date_cols = [c for c in ["call_date", "transcript_date", "event_date", "start_date"] if c in df.columns]
+    if call_date_cols:
+        actual_date_col = call_date_cols[0]
+        df["call_date"] = pd.to_datetime(df[actual_date_col], errors="coerce")
+        # 1-day availability lag after the actual call date
+        df["avail_date"] = df["call_date"] + pd.Timedelta(days=1)
+        df["is_estimated_avail_date"] = df["call_date"].isna()
+        if "year" in df.columns and "quarter" in df.columns:
+            df["quarter_end"] = pd.to_datetime(
+                df["year"].astype(str) + "-" + (df["quarter"] * 3).astype(str) + "-01"
+            ) + pd.offsets.MonthEnd(0)
+            fallback_mask = df["is_estimated_avail_date"]
+            if fallback_mask.any():
+                df.loc[fallback_mask, "avail_date"] = df.loc[fallback_mask, "quarter_end"] + pd.Timedelta(days=60)
+        n_actual = int((~df["is_estimated_avail_date"]).sum())
+        logger.info(f"Marketing availability: {n_actual} actual call dates, {len(df) - n_actual} fallback estimates.")
+    elif "year" in df.columns and "quarter" in df.columns:
         df["quarter_end"] = pd.to_datetime(
             df["year"].astype(str) + "-" + (df["quarter"] * 3).astype(str) + "-01"
         ) + pd.offsets.MonthEnd(0)
-        # Conservative: available 60 days after quarter end
+        # Conservative fallback: available 60 days after quarter end
         df["avail_date"] = df["quarter_end"] + pd.Timedelta(days=60)
+        df["is_estimated_avail_date"] = True
+        logger.info(f"No explicit call date column found; using quarter_end + 60 days for all {len(df)} records.")
 
     # ── Compute Higher-Order Constructs ──────────────────────────────────
     if "customer_orientation" in df.columns:
