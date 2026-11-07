@@ -73,11 +73,35 @@ def build_signals(
         if "is_amendment" in filing_cols:
             df["is_amendment"] = False
 
+    # ── Merge industry codes ─────────────────────────────────────────────
+    if not security_master.empty and "ff48" in security_master.columns:
+        df = df.merge(
+            security_master[["cik", "ff48", "sic"]].drop_duplicates(subset=["cik"]),
+            on="cik",
+            how="left",
+        )
+    else:
+        df["ff48"] = 48  # Other
+        df["sic"] = np.nan
+
     # Flag missing filing dates explicitly (do NOT impute fabricated dates)
     df["is_missing_filing_date"] = df["date_filed"].isna()
     n_missing = int(df["is_missing_filing_date"].sum())
     pct_missing = float(df["is_missing_filing_date"].mean()) if len(df) > 0 else 0.0
     logger.info(f"Filing date matching: {len(df) - n_missing} matched, {n_missing} ({pct_missing:.2%}) missing actual publication date.")
+
+    # Analyze industry and temporal concentration of missing filing dates
+    if n_missing > 0:
+        if "ff48" in df.columns:
+            missing_by_ind = df[df["is_missing_filing_date"]].groupby("ff48").size()
+            total_by_ind = df.groupby("ff48").size()
+            pct_by_ind = (missing_by_ind / total_by_ind).dropna().sort_values(ascending=False)
+            logger.info(f"Concentration of missing filing dates by FF48 industry (top 5):\n{pct_by_ind.head(5)}")
+        if "year" in df.columns:
+            missing_by_yr = df[df["is_missing_filing_date"]].groupby("year").size()
+            total_by_yr = df.groupby("year").size()
+            pct_by_yr = (missing_by_yr / total_by_yr).dropna().sort_values(ascending=False)
+            logger.info(f"Concentration of missing filing dates by year (top 3):\n{pct_by_yr.head(3)}")
 
     # ── Point-in-time availability ───────────────────────────────────────
     lag_bdays = cfg.get("signal", {}).get("availability_lag_bdays", 2)
@@ -98,17 +122,6 @@ def build_signals(
     if exclude_missing and n_missing > 0:
         logger.info(f"Primary specification: Excluding {n_missing} observations lacking actual filing dates.")
         df = df[valid_mask].copy()
-
-    # ── Merge industry codes ─────────────────────────────────────────────
-    if not security_master.empty and "ff48" in security_master.columns:
-        df = df.merge(
-            security_master[["cik", "ff48", "sic"]].drop_duplicates(subset=["cik"]),
-            on="cik",
-            how="left",
-        )
-    else:
-        df["ff48"] = 48  # Other
-        df["sic"] = np.nan
 
     # ── S1: OpRisk (operations probability) ──────────────────────────────
     if "operations_prob" in df.columns:

@@ -122,8 +122,8 @@ def build_stock_month_panel(
             )
             panel = merged_m
             
-            # Flag whether the observation has a fresh, valid point-in-time marketing score
-            panel["has_marketing_data"] = panel["avail_date"].notna()
+            # Flag whether the observation has a fresh, valid point-in-time marketing score (0 or 1 for ML)
+            panel["has_marketing_data"] = panel["avail_date"].notna().astype(int)
             
             # Preserve raw scores for empirical tests, and provide imputed versions for ML
             for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
@@ -131,6 +131,9 @@ def build_stock_month_panel(
                     panel[f"{col}_raw"] = panel[col]
                     panel[col] = panel.groupby("month")[col].transform(lambda x: x.fillna(x.median()))
                     panel[col] = panel[col].fillna(0) # Global fallback for ML
+    else:
+        if "has_marketing_data" not in panel.columns:
+            panel["has_marketing_data"] = 0
                 
     # ── Step 3: Merge returns ────────────────────────────────────────────
     if not returns.empty:
