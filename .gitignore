@@ -1,9 +1,12 @@
-# Data: Ignore temporary, interim, and proprietary subscription data
+# Data: Ignore temporary, interim, raw downloads, and proprietary linking data
 data/interim/
 data/raw/wrds/
 data/raw/crsp/
 data/raw/linking/
 data/raw/cik_gvkey.csv
+data/raw/factors/
+data/raw/sec/
+*.zip
 *.sas7bdat
 *.dta
 scratch/

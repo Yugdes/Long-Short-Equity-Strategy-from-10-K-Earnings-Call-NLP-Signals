@@ -1,0 +1,2 @@
+Dataset version: v2 (August 2026 update). Coverage 2003Q1-2025Q4.
+See README.pdf Version History for details.
