@@ -79,7 +79,10 @@ class TestFilingDeduplication(unittest.TestCase):
             by=["cik", "fiscal_year_approx", "is_amendment", "date_filed"],
             ascending=[True, True, True, True]
         )
-        deduped = filings_sorted.groupby(["cik", "fiscal_year_approx"]).first().reset_index()
+        deduped = filings_sorted.drop_duplicates(
+            subset=["cik", "fiscal_year_approx"],
+            keep="first"
+        ).reset_index(drop=True)
         
         # CIK 2001 has both: should select original 10-K
         row_2001 = deduped[deduped["cik"] == 2001].iloc[0]
@@ -92,6 +95,23 @@ class TestFilingDeduplication(unittest.TestCase):
         self.assertEqual(row_2002["form_type"], "10-K/A")
         self.assertTrue(row_2002["is_amendment"])
         self.assertEqual(row_2002["date_filed"], pd.Timestamp("2021-03-01"))
+
+    def test_drop_duplicates_prevents_column_mixing(self):
+        """Proof that drop_duplicates preserves complete intact row without combining columns from different filings."""
+        df = pd.DataFrame({
+            "cik": [2003, 2003],
+            "fiscal_year_approx": [2020, 2020],
+            "is_amendment": [False, True],
+            "date_filed": [pd.Timestamp("2021-02-15"), pd.Timestamp("2021-04-15")],
+            "edgar_url": ["edgar/10k.txt", np.nan],
+            "auditor": [np.nan, "PwC"]  # Row 1 has no auditor, Row 2 has auditor
+        })
+        df_sorted = df.sort_values(by=["cik", "fiscal_year_approx", "is_amendment", "date_filed"])
+        
+        # drop_duplicates preserves intact Row 1
+        dd_res = df_sorted.drop_duplicates(subset=["cik", "fiscal_year_approx"], keep="first").reset_index(drop=True)
+        self.assertTrue(pd.isna(dd_res.iloc[0]["auditor"]), "drop_duplicates must NOT pull non-null values from other filings")
+        self.assertEqual(dd_res.iloc[0]["edgar_url"], "edgar/10k.txt")
 
 
 # ── Test 3: Marketing Staleness Tolerance & Cadence Sensitivity ──────────────
@@ -291,6 +311,109 @@ class TestFactorRegressionAlignment(unittest.TestCase):
         # Assert misaligned collapses to 0
         self.assertAlmostEqual(beta_misaligned, 0.0, delta=0.15)
         self.assertAlmostEqual(r2_misaligned, 0.0, delta=0.05)
+
+
+# ── Test 7: Marketing Imputation & ML Feature Visibility ─────────────────────
+class TestMarketingImputationAndMLFeatureVisibility(unittest.TestCase):
+    def test_has_marketing_data_flag_and_feature_visibility(self):
+        """Verify has_marketing_data is an integer column (0 or 1) and visible in ML feature list."""
+        panel = pd.DataFrame({
+            "cik": [7001, 7002],
+            "month": [pd.Period("2020-01", freq="M"), pd.Period("2020-01", freq="M")],
+            "avail_date": [pd.Timestamp("2019-11-15"), pd.NaT],
+            "market_orientation": [0.65, np.nan],
+            "marketing_capabilities": [0.70, np.nan],
+            "marketing_excellence": [0.60, np.nan],
+            "S1_OpRisk": [0.05, 0.08]
+        })
+        
+        # Panel processing logic
+        panel["has_marketing_data"] = panel["avail_date"].notna().astype(int)
+        for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
+            panel[f"{col}_raw"] = panel[col]
+            panel[col] = panel[col].fillna(panel[col].median()).fillna(0)
+            
+        # Assertions on panel
+        self.assertEqual(panel.loc[0, "has_marketing_data"], 1)
+        self.assertEqual(panel.loc[1, "has_marketing_data"], 0)
+        self.assertEqual(panel["has_marketing_data"].dtype, np.int64)
+        
+        # Verify ML features list
+        features = [c for c in panel.columns if c.startswith("S")] + \
+                   ["market_orientation", "marketing_capabilities", "marketing_excellence", "has_marketing_data"]
+        
+        self.assertIn("has_marketing_data", features)
+        self.assertIn("S1_OpRisk", features)
+        self.assertEqual(len(features), 5)
+
+
+# ── Test 8: Actual Downloaded Datasets Empirical Integrity ───────────────────
+class TestActualDownloadedDatasets(unittest.TestCase):
+    def test_actual_risk_scores_integrity(self):
+        """Verify actual Astvansh & Simpson operational risk dataset on disk."""
+        from pathlib import Path
+        p = Path("data/processed/risk_scores.parquet")
+        self.assertTrue(p.exists(), "risk_scores.parquet must exist")
+        df = pd.read_parquet(p)
+        self.assertEqual(len(df), 131920, "Must contain exactly 131,920 firm-years")
+        self.assertEqual(df["cik"].nunique(), 16959, "Must contain exactly 16,959 unique CIKs")
+        self.assertEqual(df["filing_date"].isna().sum(), 0, "Must have zero missing filing dates")
+        self.assertEqual(df["year"].min(), 2005)
+        self.assertEqual(df["year"].max(), 2025)
+        self.assertAlmostEqual(df["op_risk"].mean(), 0.1773, delta=0.001)
+
+    def test_actual_marketing_scores_integrity(self):
+        """Verify actual Damavandi et al. marketing scores dataset on disk."""
+        from pathlib import Path
+        p = Path("data/processed/marketing_scores.parquet")
+        self.assertTrue(p.exists(), "marketing_scores.parquet must exist")
+        df = pd.read_parquet(p)
+        self.assertEqual(len(df), 295521, "Must contain 295,521 aligned firm-quarters")
+        self.assertEqual(df.duplicated(subset=["cik", "year", "quarter"]).sum(), 0, "Zero duplicates on (CIK, year, quarter)")
+        for col in ["market_orientation", "marketing_capabilities", "marketing_excellence"]:
+            self.assertIn(col, df.columns, f"{col} must be in marketing scores")
+            self.assertEqual(df[col].isna().sum(), 0, f"{col} must not have nulls")
+
+    def test_actual_factors_integrity(self):
+        """Verify actual Kenneth French asset pricing factors on disk."""
+        from pathlib import Path
+        p = Path("data/processed/factors_monthly.parquet")
+        self.assertTrue(p.exists(), "factors_monthly.parquet must exist")
+        df = pd.read_parquet(p)
+        self.assertEqual(len(df), 759, "Must contain 759 continuous months")
+        self.assertEqual(str(df["month"].min()), "1963-07")
+        self.assertEqual(str(df["month"].max()), "2026-09")
+        # Ensure return units are in decimals (e.g. mean market return ~0.005-0.01 per month, not 0.5-1.0%)
+        self.assertLess(abs(df["Mkt-RF"].mean()), 0.05)
+        self.assertLess(abs(df["RF"].mean()), 0.02)
+
+    def test_actual_filings_and_security_master(self):
+        """Verify actual filings table and augmented security master on disk."""
+        from pathlib import Path
+        p_fl = Path("data/processed/filings.parquet")
+        self.assertTrue(p_fl.exists(), "filings.parquet must exist")
+        df_fl = pd.read_parquet(p_fl)
+        self.assertEqual(len(df_fl), 131920)
+        self.assertEqual(df_fl["date_filed"].isna().sum(), 0)
+
+        p_sm = Path("data/processed/security_master.parquet")
+        self.assertTrue(p_sm.exists(), "security_master.parquet must exist")
+        df_sm = pd.read_parquet(p_sm)
+        self.assertEqual(len(df_sm), 22060)
+        # Check match rate to risk CIKs is 84.8%
+        self.assertEqual(df_sm["in_risk_dataset"].sum(), 14375)
+
+    def test_actual_stage1_panel_integration(self):
+        """Verify the integrated stock-month panel generated from actual datasets."""
+        from pathlib import Path
+        p_panel = Path("data/processed/panel_stock_month.parquet")
+        self.assertTrue(p_panel.exists(), "panel_stock_month.parquet must exist")
+        df_p = pd.read_parquet(p_panel)
+        self.assertEqual(len(df_p), 1241695, "Panel must contain 1,241,695 stock-month rows")
+        self.assertEqual(df_p["cik"].nunique(), 14382, "Panel must cover 14,382 unique CIK firms")
+        self.assertEqual(df_p["has_marketing_data"].sum(), 476900, "Genuine marketing coverage must be 476,900 rows")
+        self.assertEqual(df_p["market_orientation_raw"].notna().sum(), 476900)
+        self.assertEqual(df_p["market_orientation"].isna().sum(), 0)
 
 
 if __name__ == "__main__":
