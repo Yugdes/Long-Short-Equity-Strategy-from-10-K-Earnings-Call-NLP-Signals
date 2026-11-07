@@ -163,9 +163,10 @@ def build_filings_table(
         by=["cik", "fiscal_year_approx", "is_amendment", "date_filed"],
         ascending=[True, True, True, True]
     )
-    deduped = filings_sorted.groupby(
-        ["cik", "fiscal_year_approx"]
-    ).first().reset_index()
+    deduped = filings_sorted.drop_duplicates(
+        subset=["cik", "fiscal_year_approx"],
+        keep="first"
+    ).reset_index(drop=True)
 
     logger.info(f"Total 10-K filings: {len(filings)}")
     n_orig = (~deduped['is_amendment']).sum()

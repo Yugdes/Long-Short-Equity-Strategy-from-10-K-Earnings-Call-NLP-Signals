@@ -73,12 +73,18 @@ def download_sec_tickers(cache_dir: Path, cfg: dict) -> pd.DataFrame:
     if cache_file.exists():
         return load_parquet(cache_file)
 
-    headers = {
-        "User-Agent": cfg.get("sec_user_agent", "Research research@example.com")
-    }
-    resp = requests.get(SEC_TICKERS_URL, headers=headers, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
+    raw_json = Path(get_path(cfg, "raw")) / "sec" / "company_tickers.json"
+    if raw_json.exists():
+        logger.info(f"Loading local SEC tickers from {raw_json}")
+        with open(raw_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        headers = {
+            "User-Agent": cfg.get("sec_user_agent", "Research research@example.com")
+        }
+        resp = requests.get(SEC_TICKERS_URL, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
 
     records = []
     for key, entry in data.items():
@@ -118,6 +124,18 @@ def build_security_master(
     # Get SEC tickers
     sec_df = download_sec_tickers(cache_dir, cfg)
 
+    # Incorporate historical tickers from linking table if available
+    hist_file = Path(get_path(cfg, "raw")) / "linking" / "cik_ticker.parquet"
+    if hist_file.exists():
+        logger.info(f"Augmenting with historical ticker mappings from {hist_file.name}...")
+        hist_df = pd.read_parquet(hist_file)
+        hist_df["cik"] = hist_df["CIK"].astype("int64")
+        hist_df = hist_df.sort_values(by=["cik", "LTDate"], ascending=[True, False]).drop_duplicates(subset=["cik"])
+        hist_df = hist_df.rename(columns={"Ticker": "ticker", "CoName": "title"})[["cik", "ticker", "title"]]
+        combined = pd.concat([sec_df[["cik", "ticker", "title"]], hist_df], ignore_index=True)
+        sec_df = combined.drop_duplicates(subset=["cik"], keep="first").reset_index(drop=True)
+        logger.info(f"Total security master universe after historical augmentation: {len(sec_df)} CIKs")
+
     # If we have risk CIKs, flag which ones we matched
     if risk_ciks is not None:
         unique_risk_ciks = risk_ciks.unique()
@@ -125,9 +143,8 @@ def build_security_master(
         match_rate = len(matched) / len(unique_risk_ciks) * 100
         logger.info(
             f"CIK match rate: {len(matched)}/{len(unique_risk_ciks)} "
-            f"({match_rate:.1f}%) risk CIKs found in SEC tickers"
+            f"({match_rate:.1f}%) risk CIKs found in security master"
         )
-        # Use matched as the base, but keep all SEC entries for future use
         sec_df["in_risk_dataset"] = sec_df["cik"].isin(unique_risk_ciks)
 
     # Try to get SIC codes from SEC submissions API (first 100 as sample)

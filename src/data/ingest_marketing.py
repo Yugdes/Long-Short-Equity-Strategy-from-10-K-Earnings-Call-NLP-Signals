@@ -43,26 +43,54 @@ def ingest_marketing_scores(
         logger.info(f"Loading cached marketing scores from {out_file}")
         return load_parquet(out_file)
 
-    # Find CSV files
-    csv_files = list(raw_dir.glob("*.csv"))
-    if not csv_files:
-        logger.warning(
-            f"No marketing CSV files found in {raw_dir}. "
-            f"Download from https://marketing-measures.github.io/ "
-            f"and place in {raw_dir}/"
-        )
-        return pd.DataFrame()
+    # Check for Executive and Analyst files specifically
+    exec_file = raw_dir / "MarketingEmphasisScores_Executive.csv"
+    analyst_file = raw_dir / "MarketingEmphasisScores_Analyst.csv"
 
-    # Read and concatenate
-    dfs = []
-    for f in csv_files:
-        logger.info(f"Reading {f.name}...")
-        df = pd.read_csv(f, low_memory=False)
+    if exec_file.exists():
+        logger.info(f"Reading Executive marketing scores from {exec_file.name}...")
+        df = pd.read_csv(exec_file, low_memory=False)
         df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_", regex=False)
-        dfs.append(df)
-        logger.info(f"  → {df.shape[0]} rows, columns: {list(df.columns)[:10]}...")
+        
+        if analyst_file.exists():
+            logger.info(f"Merging Analyst marketing scores from {analyst_file.name}...")
+            analyst_df = pd.read_csv(analyst_file, low_memory=False)
+            analyst_df.columns = analyst_df.columns.str.strip().str.lower().str.replace(" ", "_", regex=False)
+            analyst_cols_map = {
+                "customer_orientation": "analyst_customer_orientation",
+                "zca_customer_orientation": "analyst_zca_customer_orientation"
+            }
+            avail_cols = [c for c in analyst_cols_map if c in analyst_df.columns]
+            if avail_cols:
+                analyst_subset = analyst_df[["gvkey", "year", "quarter"] + avail_cols].rename(columns=analyst_cols_map)
+                df["gvkey_str"] = df["gvkey"].astype(str).str.split(".").str[0].str.zfill(6)
+                analyst_subset["gvkey_str"] = analyst_subset["gvkey"].astype(str).str.split(".").str[0].str.zfill(6)
+                df = df.merge(
+                    analyst_subset.drop(columns=["gvkey"]),
+                    on=["gvkey_str", "year", "quarter"],
+                    how="left"
+                ).drop(columns=["gvkey_str"])
+    else:
+        # Fallback to any CSV files
+        csv_files = list(raw_dir.glob("*.csv"))
+        if not csv_files:
+            logger.warning(
+                f"No marketing CSV files found in {raw_dir}. "
+                f"Download from https://marketing-measures.github.io/ "
+                f"and place in {raw_dir}/"
+            )
+            return pd.DataFrame()
 
-    df = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
+        # Read and concatenate
+        dfs = []
+        for f in csv_files:
+            logger.info(f"Reading {f.name}...")
+            d = pd.read_csv(f, low_memory=False)
+            d.columns = d.columns.str.strip().str.lower().str.replace(" ", "_", regex=False)
+            dfs.append(d)
+            logger.info(f"  → {d.shape[0]} rows, columns: {list(d.columns)[:10]}...")
+
+        df = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
 
     # ── Identify the firm identifier ─────────────────────────────────────
     id_candidates = {"gvkey": "gvkey", "ticker": "ticker", "cik": "cik"}
@@ -71,15 +99,17 @@ def ingest_marketing_scores(
     
     # WRDS Link Table Integration
     link_file = raw_dir.parent / "cik_gvkey.csv"
+    if not link_file.exists():
+        link_file = raw_dir.parent / "linking" / "cik_gvkey.csv"
     if "cik" not in df.columns and "gvkey" in df.columns and link_file.exists():
         logger.info(f"Found WRDS Link Table: {link_file.name}. Merging GVKEY to CIK...")
         link_df = pd.read_csv(link_file, usecols=["cik", "gvkey"]).dropna()
         
         # Format gvkey consistently as 6-digit string
-        link_df["gvkey"] = link_df["gvkey"].astype(float).astype("Int64").astype(str).str.zfill(6)
+        link_df["gvkey"] = link_df["gvkey"].astype(str).str.split(".").str[0].str.zfill(6)
         link_df = link_df.drop_duplicates(subset=["gvkey"])
         
-        df["gvkey"] = df["gvkey"].astype(str).str.zfill(6)
+        df["gvkey"] = df["gvkey"].astype(str).str.split(".").str[0].str.zfill(6)
         df = df.merge(link_df, on="gvkey", how="left")
         
         mapped_count = df["cik"].notna().sum()
@@ -87,6 +117,7 @@ def ingest_marketing_scores(
         
         df = df.dropna(subset=["cik"])
         df["cik"] = df["cik"].astype("int64")
+        df = df.drop_duplicates(subset=["cik", "year", "quarter"], keep="first")
         found_ids["cik"] = "cik"
     
     for col in found_ids:
