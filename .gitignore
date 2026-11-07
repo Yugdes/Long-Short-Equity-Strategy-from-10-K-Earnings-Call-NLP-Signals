@@ -53,9 +53,5 @@ reports/*.pptx
 # Logs
 *.log
 
-# Audit & Stage Remediation Reports (internal working documents)
-INDEPENDENT_AUDIT_REPORT.md
-DATASET_ACQUISITION_REPORT.md
-STAGE1_FINAL_INTEGRATION_REPORT.md
-STAGE1_RECONCILIATION_REPORT.md
-0[1-5]_*.md
+# Internal working documents & stage reports
+internal_files/
