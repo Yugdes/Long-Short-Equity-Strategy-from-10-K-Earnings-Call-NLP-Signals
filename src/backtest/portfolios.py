@@ -32,7 +32,8 @@ def assign_quantiles(
             bins = np.linspace(0, 1, n_quantiles + 1)
             return pd.cut(ranks, bins=bins, labels=range(1, n_quantiles + 1), include_lowest=True)
 
-    return panel.groupby(group_col)[signal_col].transform(_qcut).astype(int)
+    res = panel.groupby(group_col)[signal_col].transform(_qcut)
+    return pd.to_numeric(res, errors="coerce")
 
 
 def compute_portfolio_returns(
