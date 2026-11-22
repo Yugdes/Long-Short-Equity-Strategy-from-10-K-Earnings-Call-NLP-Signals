@@ -44,8 +44,9 @@ def _feat(name="features.parquet"):
 def _oos(feat, s, m, h=1):
     """Dev OOS predictions; once unlocked, the final-test predictions are appended."""
     p = _preds(s, m, h)
-    if is_unlocked():
-        p = pd.concat([p, _preds(s, m, h, final=True)])
+    ff_ = path("processed") / "preds" / f"{s}__{m}__h{h}_final.parquet"
+    if is_unlocked() and ff_.exists():
+        p = pd.concat([p, pd.read_parquet(ff_)])
     return feat.merge(p, on=["cik", "month"])
 
 
@@ -66,6 +67,9 @@ def alt_lag_runs(variants: dict) -> pd.DataFrame:
             run_walkforward(ft, SETS["ALL"], "y_rank", LEARNERS["lgbm"], cfg["sample"]["first_test_year"],
                             cfg["sample"]["last_dev_year"]).to_parquet(pf, index=False)
         d = ft.merge(pd.read_parquet(pf), on=["cik", "month"])
+        from src.backtest.portfolios import sort_portfolios
+        from src.evaluation.speclog import log_spec
+        log_spec("ml_robust", f"ALL|lgbm|{name}|vw|d10", sort_portfolios(d, "pred", n=10, weight="vw")[0]["LS"])
         rows.append({"variant": name, **summarize(d)})
     return pd.DataFrame(rows)
 
@@ -84,13 +88,28 @@ def shuffled_label_test(feat: pd.DataFrame, seed: int = 0) -> dict:
     return summarize(d)
 
 
+DEV_STAGES = ["single_sort", "ml_dev", "ml_diag", "ml_robust", "tear_dev"]
+
+
+def rb_window(s: pd.Series, win) -> pd.Series:
+    return s[(s.index >= pd.Period(win[0], "M")) & (s.index <= pd.Period(win[1], "M"))]
+
+
 def run_analysis():
     ff = load_ff_factors()
     feat = _feat()
     res = {}
     # ---- primary strategy + model ladder comparison (dev; + test after unlock) ----
     d = _oos(feat, *PRIMARY)
-    res["tear"] = tearsheet(d)
+    cfg = load_config()
+    dev_win = ("2014-01", f"{cfg['sample']['last_dev_year']}-12")
+    res["tear"] = tearsheet(d)                                    # full span: curves only (test window shaded)
+    res["tear_dev"] = tearsheet(d, window=dev_win)                # tables: development window
+    if is_unlocked():                                             # same continuous portfolios, test-window stats
+        res["tear_test"] = tearsheet(d, window=(cfg["test"]["start"], cfg["sample"]["end"]))
+    from src.evaluation.speclog import log_spec
+    for tag, sr in res["tear_dev"]["series"].items():             # D-029: construction variants are trials too
+        log_spec("tear_dev", f"ALL|ens|{tag}", rb_window(sr["gross"], dev_win))
     res["ic_primary"] = ic_series(d, "pred", "y_rank")
     res["ic_controls"] = ic_series(_oos(feat, "C", "ens"), "pred", "y_rank")
     # H5: paired test of the IC added by text features, same rows and months (dev window)
@@ -128,8 +147,10 @@ def run_analysis():
         dd = feat.merge(pd.read_parquet(f_), on=["cik", "month"])
         R[f"{s}|{m}"] = sort_portfolios(dev_only(dd), "pred", n=10, weight="vw")[0]["LS"]
     res["pbo"] = rb.pbo_cscv(pd.DataFrame(R), n_blocks=16)
-    res["dsr"] = rb.dsr_for(dev_only(res["tear"]["series"]["d10_vw"]["net25"].to_frame("r"), None)["r"],
-                            stage_filter=["single_sort", "ml_dev"])
+    # D-029: one trial family everywhere = every dev-window spec in the log (test-window specs excluded);
+    # trials are gross series, so the tested primary series is gross too
+    res["dsr"] = rb.dsr_for(rb_window(res["tear"]["series"]["d10_vw"]["gross"], dev_win),
+                            stage_filter=DEV_STAGES)
     res["alt_lags"] = alt_lag_runs({"mkt_lag0": {"mkt_buffer_months": 0}, "mkt_lag2": {"mkt_buffer_months": 2},
                                     "risk_lag10bd": {"risk_lag_bdays": 10}})
     res["horizon3"] = pd.read_csv(path("results") / "tables" / "ml_summary_dev_h3.csv")
@@ -175,12 +196,12 @@ def export_json():
     tear = res["tear"]
     prim = tear["series"]["d10_vw"]
     bm = tear["benchmarks"]
-    var = tear["variants"].set_index("variant")
+    var = res["tear_dev"]["variants"].set_index("variant")
     dev_net = dev_only(prim["net25"].to_frame("r"), None)["r"]
     pv = var.loc["d10_vw"]
     ml_dev = pd.read_csv(T / "ml_summary_dev_h1.csv")
     prim_dev = ml_dev[(ml_dev["set"] == PRIMARY[0]) & (ml_dev["model"] == PRIMARY[1])].iloc[0]
-    from src.backtest.metrics import perf_stats
+    from src.backtest.metrics import perf_stats, nw_tstat
     from src.backtest.regressions import factor_alpha
     dev_stats = perf_stats(dev_net)
     dev_alpha = factor_alpha(dev_net, load_ff_factors(), "FF5+Mom")
@@ -206,10 +227,18 @@ def export_json():
     if is_unlocked():
         test_net = prim["net25"][prim["net25"].index >= pd.Period(cfg["test"]["start"], "M")]
         st = perf_stats(test_net)
+        ta = factor_alpha(test_net, load_ff_factors(), "FF5+Mom")
+        tg = perf_stats(prim["gross"][prim["gross"].index >= pd.Period(cfg["test"]["start"], "M")])
         summary["primary"].update({"test_net_sharpe": st["sharpe"], "test_net_ann_mean": st["ann_mean"],
-                                   "test_months": st["n_months"], "test_t_mean": st["t_mean_nw"]})
+                                   "test_months": st["n_months"], "test_t_mean": st["t_mean_nw"],
+                                   "test_gross_sharpe": tg["sharpe"], "test_net_alpha_ann": ta["alpha_ann"],
+                                   "test_net_t_alpha": ta["t_alpha"]})
         ic = res["ic_primary"]
-        summary["primary"]["test_ic_mean"] = float(ic[ic.index >= pd.Period(cfg["test"]["start"], "M")].mean())
+        tic = ic[ic.index >= pd.Period(cfg["test"]["start"], "M")]
+        summary["primary"]["test_ic_mean"] = float(tic.mean())
+        summary["primary"]["test_ic_t"] = nw_tstat(tic)
+        ticc = res["ic_controls"][res["ic_controls"].index >= pd.Period(cfg["test"]["start"], "M")]
+        summary["primary"]["test_ic_controls"] = float(ticc.mean())
     _write("summary", summary)
 
     # --- dataset explorer ---
@@ -247,11 +276,14 @@ def export_json():
         "cum_long_ex": _ser(cum(prim["long_ex"].reindex(idx))), "cum_short_ex": _ser(cum(prim["short_ex"].reindex(idx))),
         "cum_market_ex": _ser(cum(bm["mkt_excess"].reindex(idx))),
         "drawdown": _ser(tear["drawdown"]),
-        "decile_bars": {k: [round(float(v) * 12, 5) for v in s.values] for k, s in tear["decile_bars"].items()},
-        "variants": _tab(tear["variants"]),
-        "alphas": _tab(tear["alphas"]),
+        "decile_bars": {k: [round(float(v) * 12, 5) for v in s.values] for k, s in res["tear_dev"]["decile_bars"].items()},
+        "variants": _tab(res["tear_dev"]["variants"]),
+        "alphas": _tab(res["tear_dev"]["alphas"]),
+        **({"variants_test": _tab(res["tear_test"]["variants"]), "alphas_test": _tab(res["tear_test"]["alphas"]),
+            "decile_bars_test": {k: [round(float(v) * 12, 5) for v in s.values] for k, s in res["tear_test"]["decile_bars"].items()}}
+           if "tear_test" in res else {}),
         "ic_primary": _ser(res["ic_primary"]), "ic_controls": _ser(res["ic_controls"]),
-        "test_start": cfg["test"]["start"], "unlocked": is_unlocked(),
+        "test_start": cfg["test"]["start"], "test_end": cfg["sample"]["end"], "unlocked": is_unlocked(),
     })
     _write("models", {
         "ladder_dev": _tab(ml_dev),
@@ -271,7 +303,7 @@ def export_json():
         "placebo_null_sharpes": [round(float(v), 4) for v in res["placebo"]["null_sharpes"]],
         "placebo_real_sharpe": res["placebo"]["real_sharpe"],
         "extended_ew": {k: {"cum": _ser(cum(v)), "stats": perf_stats(v)} for k, v in res["extended_ew"].items()},
-        "spec_count": int(len(pd.read_csv(path("results") / "spec_log.csv"))),
+        "spec_count": int(pd.read_csv(path("results") / "spec_log.csv")["stage"].isin(DEV_STAGES).sum()),
     })
     sh = res["shap"]
     _write("shap", {

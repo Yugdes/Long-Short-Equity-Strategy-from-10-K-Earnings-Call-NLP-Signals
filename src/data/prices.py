@@ -13,7 +13,11 @@ import pandas as pd
 
 from src.utils.config import path
 
-START, END = "2004-12-01", "2025-12-31"
+START = "2004-12-01"
+# D-028: no end date. Yahoo's adjusted Close reflects every split up to the download date, but split
+# events are only returned inside the requested window; an end date therefore drops later (reverse) splits
+# and corrupts raw-price / market-cap reconstruction. Download to today; the panel truncates months later.
+END = None
 BENCH = ["SPY"]
 
 
@@ -89,15 +93,12 @@ def monthly_from_daily(daily: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_returns(m: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """D-020: blank out returns that are data errors, not market moves.
-    (a) ret < -100% (impossible); (b) ret > +1000%; (c) spike-and-reversal: ret_t > +300% followed by
-    ret_t+1 < -75% (classic bad tick) -> both months. Prices are kept; only `ret` is set to NaN."""
+    """D-020 (amended D-029): blank out returns that are data errors, not market moves:
+    (a) ret < -100% (impossible); (b) ret > +1000%. The earlier spike-and-reversal rule was dropped
+    because it used ret_{t+1} to decide whether ret_t exists. Prices are kept; only `ret` is set to NaN."""
     m = m.sort_values(["ticker", "month"]).copy()
-    nxt = m.groupby("ticker")["ret"].shift(-1)
-    spike = (m["ret"] > 3) & (nxt < -0.75)
-    rev = spike.groupby(m["ticker"]).shift(1, fill_value=False)
-    flags = {"lt_minus100": m["ret"] < -1, "gt_1000": m["ret"] > 10, "spike_reversal": spike | rev}
-    bad = flags["lt_minus100"] | flags["gt_1000"] | flags["spike_reversal"]
+    flags = {"lt_minus100": m["ret"] < -1, "gt_1000": m["ret"] > 10}
+    bad = flags["lt_minus100"] | flags["gt_1000"]
     stats = {k: int(v.sum()) for k, v in flags.items()} | {"total_blanked": int(bad.sum()), "rows": len(m)}
     m.loc[bad, "ret"] = np.nan
     return m, stats

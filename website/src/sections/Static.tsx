@@ -35,7 +35,7 @@ export function Design() {
     <Section id="design" title="Research design and hypotheses">
       <div className="prose">
         <p>The hypotheses, the primary strategy and the significance hurdle were written down before any return was
-          examined. The final 42 months (January 2022 to June 2025) were locked until the design was frozen.</p>
+          examined. The final 41 months (January 2022 to May 2025) were locked until the design was frozen.</p>
       </div>
       <Ledger />
     </Section>
@@ -97,20 +97,26 @@ export function Limitations() {
   return (
     <Section id="limitations" title="Limitations">
       <div className="prose">
-        <p><strong>Survivorship.</strong> Prices come from Yahoo Finance, which only serves firms that still have a ticker.
-          Firms that were delisted, merged or went bankrupt are missing, and so are their final, often worst, returns. Only
-          12% to 33% of the risk-score filings in a year reach the primary universe. Both legs are affected, so the direction
-          of the bias in a long-short spread is not known, but its size could be material.</p>
+        <p><strong>Survivorship, and it changes over time.</strong> Prices come from Yahoo Finance, which only serves firms
+          that still have a ticker today. Every stock in the sample therefore survived to late 2025: a stock in the 2014
+          cross-section had to survive about eleven more years to be included, a stock in the 2023 cross-section only about two.
+          Firms that later failed are missing mostly from the early years, so the development window's losers look better than
+          they really were, and the bias weakens toward the test window. Development and test results are therefore not directly
+          comparable, and the strategy's short leg is the part most affected. Only 12% to 33% of each year's scored filings reach
+          the primary universe. A survivorship-free source (CRSP with delisting returns) is the real fix.</p>
         <p><strong>Free fundamentals.</strong> Market capitalisation and book equity come from XBRL filings, which begin in
           2009 to 2011. Size and value controls and value weights are unavailable earlier, which is why the primary sample starts
           in 2010. Share counts needed sanity rules (decision log D-021), and a handful of misstated values can remain, which is
           why value weights are capped.</p>
-        <p><strong>Current, not historical, identifiers.</strong> Industry codes and tickers are today's, applied backwards.</p>
+        <p><strong>Current, not historical, identifiers.</strong> Industry codes, tickers and the exchange used to cap value
+          weights are today's, applied backwards.</p>
         <p><strong>The scores themselves.</strong> The risk transformers were trained on 761 synthetic sentences labelled by
           the same dictionaries they were meant to improve on, with no human-labelled check on real filings. Their probabilities
           correlate only 0.14 with the dictionary counts for operations risk and fall as Item 1A gets longer. The three marketing
-          constructs correlate 0.89 to 0.97 with one another, so they behave like one dimension.</p>
-        <p><strong>Short horizon of the test.</strong> The locked window is 42 months, too short to separate a modest edge
+          constructs correlate 0.89 to 0.97 with one another, so they behave like one dimension. The decorrelated (ZCA) components
+          supplied by the authors were most likely whitened on the full 2003–2025 sample, a mild look-ahead; a robustness run
+          with the raw components instead is reported.</p>
+        <p><strong>Short horizon of the test.</strong> The locked window is 41 months, too short to separate a modest edge
           from luck on its own; it is a check on the development results, not a verdict by itself.</p>
         <p><strong>Not investment advice.</strong> Results are historical, gross of borrowing costs and market impact beyond
           the stated commissions, and for research and teaching only.</p>
@@ -135,6 +141,7 @@ const REFS: [string, string][] = [
   ["Fama, E. F., & MacBeth, J. D. (1973). Risk, return, and equilibrium: Empirical tests. Journal of Political Economy, 81(3), 607–636.", "https://doi.org/10.1086/260061"],
   ["Gu, S., Kelly, B., & Xiu, D. (2020). Empirical asset pricing via machine learning. Review of Financial Studies, 33(5), 2223–2273.", "https://doi.org/10.1093/rfs/hhaa009"],
   ["Harvey, C. R., Liu, Y., & Zhu, H. (2016). … and the cross-section of expected returns. Review of Financial Studies, 29(1), 5–68.", "https://doi.org/10.1093/rfs/hhv059"],
+  ["Jensen, T. I., Kelly, B., & Pedersen, L. H. (2023). Is there a replication crisis in finance? Journal of Finance, 78(5), 2465–2518.", "https://doi.org/10.1111/jofi.13249"],
   ["Kravet, T., & Muslu, V. (2013). Textual risk disclosures and investors' risk perceptions. Review of Accounting Studies, 18(4), 1088–1122.", "https://doi.org/10.1007/s11142-013-9228-9"],
   ["Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35–65.", "https://doi.org/10.1111/j.1540-6261.2010.01625.x"],
   ["McLean, R. D., & Pontiff, J. (2016). Does academic research destroy stock return predictability? Journal of Finance, 71(1), 5–32.", "https://doi.org/10.1111/jofi.12365"],

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from src.data.factors import load_ff_factors
-from src.data.marketing import load_marketing, CONSTRUCTS, ZCA
+from src.data.marketing import load_marketing, COMPONENTS, CONSTRUCTS, ZCA
 from src.data.prices import build_monthly, split_adjust_shares
 from src.data.risk import load_risk_scores, FACTORS
 from src.data.sec import parse_companyfacts
@@ -50,7 +50,7 @@ def marketing_quarter_features(mk: pd.DataFrame) -> pd.DataFrame:
     m = mk.sort_values(["cik", "year", "quarter"]).copy()
     m["qidx"] = m["year"] * 4 + m["quarter"]
     g = m.groupby("cik")
-    cols = list(CONSTRUCTS) + list(ZCA.values()) + ["an_cust"]
+    cols = list(CONSTRUCTS) + list(ZCA.values()) + COMPONENTS + ["an_cust"]
     prev_q = g["qidx"].shift(1)
     for c in CONSTRUCTS:
         m[f"dq_{c}"] = (m[c] - g[c].shift(1)).where(m["qidx"] - prev_q == 1)

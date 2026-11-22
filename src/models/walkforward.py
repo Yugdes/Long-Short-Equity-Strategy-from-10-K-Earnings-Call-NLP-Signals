@@ -25,7 +25,8 @@ def splits(months, first_test_year: int, last_test_year: int, embargo: int = 1, 
         train_end = ts - 1 - embargo - (horizon - 1)
         val_start = train_end - 12 * val_years + 1
         out.append({"year": y, "train_start": months.min(), "train_end": train_end,
-                    "fit_end": val_start - 2, "val_start": val_start, "val_end": train_end,
+                    "fit_end": val_start - 1 - embargo - (horizon - 1),   # fit labels end before validation starts
+                    "val_start": val_start, "val_end": train_end,
                     "test_start": ts, "test_end": te})
     return out
 

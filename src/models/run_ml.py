@@ -62,16 +62,22 @@ def main(horizon=1, final=False):
             else:
                 print(f"[{model} | {s} | h={horizon}] {len(SETS[s])} features")
                 pr = run_walkforward(feat, SETS[s], target, LEARNERS[model], first, last, horizon=horizon)
+                if horizon > 1 and not final:   # D-029: a dev label must not read the locked window
+                    pr = pr[pr["month"] <= pd.Period(f"{last}-12", "M") - (horizon - 1)]
                 pr.to_parquet(f, index=False)
             rows.append({"set": s, "model": model, **evaluate(feat, pr, f"{s}|{model}|h{horizon}", ff,
                                                                 "ml_final" if final else "ml_dev", target)})
     # ensembles: mean prediction of the 4 learners (all predict the same centred-rank target)
     for s in (("C", "ALL") if horizon == 1 else ()):
         ps = [pd.read_parquet(out_dir / f"{s}__{m}__h{horizon}{'_final' if final else ''}.parquet") for m in LEARNERS]
+        # pre-registered equal-weight RANK ensemble (RESEARCH_DESIGN §3; corrected in D-029): each learner's
+        # predictions are ranked within the month first, so no learner dominates through its scale
+        ps = [p.assign(pred=p.groupby("month")["pred"].rank(pct=True) - 0.5) for p in ps]
         ens = pd.concat(ps).groupby(["cik", "month"], as_index=False)["pred"].mean()
         ens.to_parquet(out_dir / f"{s}__ens__h{horizon}{'_final' if final else ''}.parquet", index=False)
-        rows.append({"set": s, "model": "ens", **evaluate(feat, ens, f"{s}|ens|h{horizon}", ff,
-                                                           "ml_final" if final else "ml_dev")})
+        row = {"set": s, "model": "ens", **evaluate(feat, ens, f"{s}|ens|h{horizon}", ff, "ml_final" if final else "ml_dev")}
+        row["oos_r2_rank"] = float("nan")   # undefined for a rank ensemble (its scale is the target's, not a forecast's)
+        rows.append(row)
     res = pd.DataFrame(rows)
     res.to_csv(path("results") / "tables" / f"ml_summary_{'final' if final else 'dev'}_h{horizon}.csv", index=False)
     print(res.round(4).to_string())

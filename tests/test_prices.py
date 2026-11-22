@@ -49,5 +49,12 @@ def test_clean_returns_flags_errors_not_crashes():
     m = pd.DataFrame({"ticker": "A", "month": pd.period_range("2020-01", periods=6, freq="M"),
                       "ret": [-1.5, -0.9, 4.0, -0.8, 12.0, 0.5]})
     out, st = clean_returns(m)
-    assert out["ret"].isna().tolist() == [True, False, True, True, True, False]   # -90% crash kept
-    assert st["total_blanked"] == 4
+    assert out["ret"].isna().tolist() == [True, False, False, False, True, False]   # -90% crash kept
+    assert st["total_blanked"] == 2                                                  # no use of ret_t+1
+
+
+def test_download_has_no_end_date():
+    # D-028: an end date drops later (reverse) split events that Yahoo's adjusted Close still reflects,
+    # which corrupts raw-price / market-cap reconstruction with look-ahead.
+    from src.data import prices
+    assert prices.END is None

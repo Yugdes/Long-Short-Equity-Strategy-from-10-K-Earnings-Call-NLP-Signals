@@ -3,6 +3,7 @@ import pandas as pd
 
 from src.features.panel import risk_filing_features
 from src.features.signals import make_features, CONTROL_VARS, RISK_VARS, MKT_VARS
+from src.data.marketing import COMPONENTS
 
 
 def _toy_panel():
@@ -11,7 +12,7 @@ def _toy_panel():
     df = pd.DataFrame({"cik": [1, 2, 3, 4] * 2, "month": months, "ff48": [1, 1, 2, 2] * 2,
                        "elig": [True, True, True, False, True, True, True, True],
                        "exret": rng.normal(size=8), "exret_3m": rng.normal(size=8)})
-    for c in CONTROL_VARS + RISK_VARS + MKT_VARS:
+    for c in CONTROL_VARS + RISK_VARS + MKT_VARS + COMPONENTS:
         df[c] = rng.normal(size=8)
     df.loc[3, "operations_prob"] = 99.0            # extreme value in an ineligible row
     return df

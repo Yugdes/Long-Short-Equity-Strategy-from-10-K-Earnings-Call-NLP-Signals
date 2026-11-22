@@ -28,7 +28,7 @@ export default function Plot({ data, layout = {}, height = 360, label }: Props) 
     return () => ro.disconnect();
   }, [data, layout, height, theme]);
   useEffect(() => () => { if (ref.current) Plotly.purge(ref.current); }, []);
-  return <div className="plot" ref={ref} role="img" aria-label={label} />;
+  return <div className="plot" ref={ref} role="img" aria-label={label} style={{ height }} />;
 }
 
 function deepMerge(a: any, b: any): any {

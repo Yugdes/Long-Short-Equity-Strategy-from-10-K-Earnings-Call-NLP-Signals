@@ -13,9 +13,11 @@ type Summary = {
   shuffled_label: { ic_mean: number; ic_t_nw: number };
 };
 type Shap = { importance: Row[]; groups: Record<string, number>; dependence: Record<string, { x: number[]; shap: number[] }> };
-type Models = { vol_prediction_dev: Row[] };
+type Models = { vol_prediction_dev: Row[]; diagnostics_dev: Row[] };
 
 const LAG_LABEL: Record<string, string> = { mkt_lag0: "Call scores usable one month earlier (no buffer)", mkt_lag2: "Call scores one month later", risk_lag10bd: "10-K scores 10 business days after filing" };
+const DIAG_LABEL: Record<string, string> = { "C+flag": "Controls + earnings-call coverage flag only", "C+M_noflag": "Controls + marketing scores, no coverage flag",
+  "C+M": "Controls + marketing", "C+R+Mraw": "Controls + risk + raw (not whitened) marketing components" };
 const GROUP_LABEL: Record<string, string> = { controls: "Price and accounting controls", risk: "10-K risk text", marketing: "Earnings-call marketing", interactions: "Risk × marketing interactions" };
 
 export const featureLabel = (f: string) => f.replace(/^r_/, "").replace(/^x_/, "× ").replace(/_prob$/, "").replace(/^d_/, "Δ ").replace(/^s_/, "surprise ").replace(/_/g, " ");
@@ -74,8 +76,9 @@ export function Robustness() {
             <strong>{fx(s.pbo.pbo, 2)}</strong> ({s.pbo.n_splits} combinatorial splits; below 0.5 is the goal).</p>
           <h3>Timing and horizon</h3>
           <div className="table-wrap"><table>
-            <thead><tr><th>Variant (LightGBM, all features)</th><th>Mean IC</th><th>IC t</th></tr></thead>
+            <thead><tr><th>Variant (LightGBM unless noted)</th><th>Mean IC</th><th>IC t</th></tr></thead>
             <tbody>{r.alt_lags.map((x) => (<tr key={String(x.variant)}><td>{LAG_LABEL[String(x.variant)]}</td><td>{fx(x.ic_mean as number, 4)}</td><td>{fx(x.ic_t_nw as number)}</td></tr>))}
+              {mo.diagnostics_dev.map((x) => (<tr key={`dg${x.set}`}><td>{DIAG_LABEL[String(x.set)] ?? String(x.set)}</td><td>{fx(x.ic_mean as number, 4)}</td><td>{fx(x.ic_t_nw as number)}</td></tr>))}
               {r.horizon3.map((x) => (<tr key={`h3${x.set}${x.model}`}><td>3-month horizon: {String(x.model)} on {String(x.set)}</td><td>{fx(x.ic_mean as number, 4)}</td><td>{fx(x.ic_t_nw as number)}</td></tr>))}
             </tbody></table></div>
         </div>

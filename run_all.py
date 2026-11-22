@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "export"]
+STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "export", "notebooks"]
 
 
 def stage_download(force):
@@ -24,6 +24,15 @@ def stage_download(force):
 
 
 def stage_panel(force):
+    if force:  # rebuild every cache derived from prices (D-028): stale caches must never survive a rerun
+        import shutil
+        from src.utils.config import path
+        for f in ["prices_monthly.parquet", "splits.parquet"]:
+            (path("interim") / f).unlink(missing_ok=True)
+        for f in path("processed").glob("*.parquet"):
+            f.unlink()
+        shutil.rmtree(path("processed") / "preds", ignore_errors=True)
+        (path("results") / "spec_log.csv").unlink(missing_ok=True)
     from src.features.panel import build_panel
     from src.evaluation.sanity import factor_replication, coverage_funnel
     p = build_panel(force=force)
@@ -59,7 +68,8 @@ def stage_single(force):
 
 def stage_ml(force):
     from src.models.run_ml import main
-    main(horizon=1), main(horizon=3)
+    from src.models.diagnostics import main as diagnostics
+    main(horizon=1), main(horizon=3), diagnostics()
     from src.utils.lock import is_unlocked
     if is_unlocked():
         main(horizon=1, final=True)
@@ -73,6 +83,10 @@ def stage_analysis(force):
 def stage_export(force):
     from src.viz.export import export_json
     export_json()
+
+
+def stage_notebooks(force):
+    subprocess.run([sys.executable, "scripts/make_notebooks.py"], check=True)
 
 
 if __name__ == "__main__":

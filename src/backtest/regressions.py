@@ -8,6 +8,7 @@ MODELS = {
     "FF3": ["mktrf", "smb", "hml"],
     "FF5": ["mktrf", "smb", "hml", "rmw", "cma"],
     "FF5+Mom": ["mktrf", "smb", "hml", "rmw", "cma", "mom"],
+    "FF5+Mom+LowVol": ["mktrf", "smb", "hml", "rmw", "cma", "mom", "lowvol"],   # lowvol built in-sample (tearsheet)
 }
 
 
@@ -28,7 +29,8 @@ def factor_alpha(r: pd.Series, factors: pd.DataFrame, model: str = "FF5+Mom", nw
 
 
 def all_alphas(r: pd.Series, factors: pd.DataFrame, nw_lags: int = 6, excess: bool = False) -> pd.DataFrame:
-    return pd.DataFrame([factor_alpha(r, factors, m, nw_lags, excess) for m in MODELS])
+    return pd.DataFrame([factor_alpha(r, factors, m, nw_lags, excess) for m, cols in MODELS.items()
+                         if set(cols) <= set(factors.columns)])
 
 
 def fama_macbeth(df: pd.DataFrame, y: str, xs: list, nw_lags: int = 6, min_obs: int = 50) -> pd.DataFrame:

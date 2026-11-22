@@ -7,7 +7,7 @@ get a `has_mkt` flag. Groups are exported in FEATURE_GROUPS for the nested model
 import numpy as np
 import pandas as pd
 
-from src.data.marketing import CONSTRUCTS, ZCA
+from src.data.marketing import COMPONENTS, CONSTRUCTS, ZCA
 from src.data.risk import FACTORS
 
 CONTROL_VARS = ["size", "bm", "mom_12_2", "rev_1", "vol_12", "beta_36", "illiq_12", "ldvol_3", "ag", "gp"]
@@ -28,7 +28,7 @@ def make_features(panel: pd.DataFrame, mask_col: str = "elig") -> pd.DataFrame:
     if {"mcap_l", "exchange"} <= set(p.columns):
         cap = p[p["exchange"] == "NYSE"].groupby("month")["mcap_l"].quantile(0.8)
         p["mcap_cap"] = np.minimum(p["mcap_l"], p["month"].map(cap).fillna(p["mcap_l"].max()))
-    rk = _rank(p, CONTROL_VARS + RISK_VARS + MKT_VARS)
+    rk = _rank(p, CONTROL_VARS + RISK_VARS + MKT_VARS + COMPONENTS)   # raw components: D-029 robustness only
     rk.columns = ["r_" + c for c in rk.columns]
     p = pd.concat([p, rk], axis=1)
     p["has_mkt"] = p["mkt_orient"].notna().astype("float32")

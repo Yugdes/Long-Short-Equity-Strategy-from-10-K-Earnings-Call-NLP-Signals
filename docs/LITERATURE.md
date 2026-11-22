@@ -163,6 +163,11 @@ Verified: https://onlinelibrary.wiley.com/doi/abs/10.1111/jofi.12365 and doi.org
 
 ---
 
+
+**Jensen, T. I., Kelly, B., & Pedersen, L. H. (2023). Is there a replication crisis in finance? *The Journal of Finance*, 78(5), 2465–2518. https://doi.org/10.1111/jofi.13249**
+Verified (added 2026-11-22 by the main session): https://research.cbs.dk/en/publications/is-there-a-replication-crisis-in-finance/ and https://econpapers.repec.org/RePEc:nbr:nberwo:28432
+They build 153 factors in 93 countries with a common methodology and a Bayesian model that accounts for publication bias and multiple testing; most factors replicate. *Use here:* their capped value weights (market caps winsorised at the NYSE 80th percentile) are the template for D-022.
+
 ## Implications for our hypotheses
 
 **(i) Levels versus changes, and direction.**

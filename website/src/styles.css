@@ -76,7 +76,7 @@ h3 { font-size: 1.2rem; line-height: 1.25; font-weight: 640; margin: 2rem 0 0.6r
   .toc { display: block; position: sticky; top: 32px; align-self: start; padding-top: 40px; font-family: var(--sans); font-size: 0.84rem; }
   .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: s; }
   .toc li { counter-increment: s; margin: 0 0 0.45rem; }
-  .toc a { color: var(--ink-3); text-decoration: none; display: grid; grid-template-columns: 2.2ch 1fr; }
+  .toc a { color: var(--ink-3); text-decoration: none; display: grid; grid-template-columns: 2.8ch 1fr; }
   .toc a::before { content: counter(s); color: var(--ink-3); font-variant-numeric: tabular-nums; }
   .toc a:hover, .toc a[aria-current="true"] { color: var(--ink); }
   .theme-btn { margin-top: 1.4rem; }
@@ -85,6 +85,7 @@ main { min-width: 0; }
 section { padding: 56px 0 8px; border-top: 1px solid var(--rule); counter-increment: sec; }
 section > .prose, .prose { max-width: var(--measure); }
 .sec-head { display: grid; grid-template-columns: auto 1fr; column-gap: 0.9rem; align-items: baseline; margin-bottom: 1.4rem; }
+.sec-head .sec-no::before { content: counter(sec); }
 .sec-head .sec-no { font-family: var(--sans); font-weight: 500; font-size: 1rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 main { counter-reset: sec; }
 
@@ -99,7 +100,8 @@ main { counter-reset: sec; }
 
 /* Figures & tables -------------------------------------------------------- */
 figure { margin: 1.6rem 0 2rem; }
-figure .plot { width: 100%; min-height: 320px; }
+figure { min-width: 0; }
+figure .plot, .plot { width: 100%; min-width: 0; overflow: hidden; }
 figcaption { max-width: var(--measure); margin-top: 0.4rem; }
 figcaption b { color: var(--ink-2); font-weight: 600; }
 .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: center; font-family: var(--sans); font-size: 0.88rem; margin: 0 0 0.6rem; color: var(--ink-2); }
@@ -144,3 +146,6 @@ footer { padding: 48px 0 64px; border-top: 1px solid var(--rule); font-family: v
 .loading { font-family: var(--sans); color: var(--ink-3); padding: 4rem 0; }
 .theme-btn { font: inherit; font-family: var(--sans); font-size: 0.82rem; background: none; border: 1px solid var(--rule); color: var(--ink-2); border-radius: 6px; padding: 0.3rem 0.6rem; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.mobile-only { padding-bottom: 32px; }
+@media (min-width: 1100px) { .mobile-only { display: none; } }

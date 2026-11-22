@@ -2,6 +2,7 @@
 data/interim/
 data/processed/
 data/raw/yahoo/
+data/raw/yahoo_bad_end2025/
 data/raw/sec/
 data/raw/french/
 data/raw/cik_gvkey.csv

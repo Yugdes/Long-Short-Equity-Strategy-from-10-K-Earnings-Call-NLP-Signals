@@ -40,6 +40,7 @@ export const FACTORS = ["accounting", "finance", "international", "legal", "mana
 export const factorColor = (f: string) => cssVar(`--f-${f}`);
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export const pct = (v: number | null | undefined, d = 1) => v == null || Number.isNaN(v) ? "–" : `${(v * 100).toFixed(d)}%`;
-export const fx = (v: number | null | undefined, d = 2) => v == null || Number.isNaN(v as number) ? "–" : (v as number).toFixed(d);
+const minus = (s: string) => s.replace(/^-/, "−");
+export const pct = (v: number | null | undefined, d = 1) => v == null || Number.isNaN(v) ? "–" : minus(`${(v * 100).toFixed(d)}%`);
+export const fx = (v: number | null | undefined, d = 2) => v == null || Number.isNaN(v as number) ? "–" : minus((v as number).toFixed(d));
 export const num = (v: number) => v.toLocaleString("en-US");

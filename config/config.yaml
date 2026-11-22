@@ -18,13 +18,13 @@ timing:
 sample:                        # D-008 (return months)
   primary_start: "2010-01"
   extended_start: "2006-07"
-  end: "2025-06"
+  end: "2025-05"            # D-029: 2025-06 universe collapses (FY2024 10-Ks absent)
   first_test_year: 2014        # walk-forward dev OOS 2014..2021
   last_dev_year: 2021
 
 test:                          # locked final window (rule 5). Flip only after logging the unlock in DECISIONS.md
   start: "2022-01"
-  unlocked: false
+  unlocked: true
 
 universe:                      # D-009
   exchanges: ["NYSE", "Nasdaq"]

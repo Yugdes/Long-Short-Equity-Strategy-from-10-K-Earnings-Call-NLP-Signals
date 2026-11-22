@@ -6,7 +6,8 @@ import { Row, Series, cssVar, fx, pct, useData, useTheme } from "../lib";
 type Strategy = {
   cum_gross: Series; cum_net25: Series; cum_long_ex: Series; cum_short_ex: Series; cum_market_ex: Series;
   drawdown: Series; decile_bars: Record<string, number[]>; variants: Row[]; alphas: Row[];
-  ic_primary: Series; ic_controls: Series; test_start: string; unlocked: boolean;
+  ic_primary: Series; ic_controls: Series; test_start: string; test_end: string; unlocked: boolean;
+  variants_test?: Row[]; alphas_test?: Row[];
 };
 type Models = { ladder_dev: Row[]; ladder_final?: Row[]; single_sorts_dev: Row[]; fama_macbeth_dev: Row[]; vol_prediction_dev: Row[] };
 
@@ -18,23 +19,70 @@ const VARIANT_LABEL = (v: string) => {
 };
 const tCls = (t: unknown) => (typeof t === "number" && Math.abs(t) >= 3 ? "sig" : typeof t === "number" && Math.abs(t) < 2 ? "weak" : "");
 
-function testShape(start: string, unlocked: boolean) {
-  return unlocked ? [{ type: "rect", xref: "x", yref: "paper", x0: start, x1: "2025-06", y0: 0, y1: 1, fillcolor: cssVar("--paper-2"), line: { width: 0 }, layer: "below" }] : [];
+function testShape(start: string, end: string, unlocked: boolean) {
+  return unlocked ? [{ type: "rect", xref: "x", yref: "paper", x0: start, x1: end, y0: 0, y1: 1, fillcolor: cssVar("--paper-2"), line: { width: 0 }, layer: "below" }] : [];
 }
 
-export function Ladder() {
-  const m = useData<Models>("models");
-  if (!m) return null;
-  const rows = [...m.ladder_dev].sort((a, b) => (b.ic_mean as number) - (a.ic_mean as number));
+function VariantTable({ rows, caption }: { rows: Row[]; caption: string }) {
   return (
     <div className="table-wrap">
       <table>
-        <caption>Out-of-sample model ladder, development window 2014–2021 (96 months). IC = monthly Spearman correlation of
-          prediction with next-month return rank; R² against a zero forecast of the centred rank; long-short = value-weighted top minus
-          bottom decile, gross.</caption>
-        <thead><tr><th>Features</th><th>Model</th><th>Mean IC</th><th>IC t (NW)</th><th>IC &gt; 0</th><th>OOS R²</th><th>Hit rate</th><th>L/S Sharpe</th><th>FF5+Mom α</th><th>α t</th></tr></thead>
+        <caption>{caption}</caption>
+        <thead><tr><th>Construction</th><th>Ann. mean</th><th>Vol</th><th>Sharpe</th><th>Sortino</th><th>Max DD</th><th>Calmar</th><th>Turnover / mo</th>
+          <th>α t</th><th>α t, + low-vol</th><th>Net 10 bps</th><th>Net 25 bps</th><th>Net 50 bps</th><th>Break-even</th></tr></thead>
         <tbody>
           {rows.map((r) => (
+            <tr key={r.variant as string} className={r.variant === "d10_vw" ? "primary" : ""}>
+              <td>{VARIANT_LABEL(r.variant as string)}</td><td>{pct(r.ann_mean as number)}</td><td>{pct(r.ann_vol as number)}</td><td>{fx(r.sharpe as number)}</td>
+              <td>{fx(r.sortino as number)}</td><td>{pct(r.max_dd as number)}</td><td>{fx(r.calmar as number)}</td><td>{pct(r.turnover_m as number, 0)}</td>
+              <td className={tCls(r.t_alpha)}>{fx(r.t_alpha as number)}</td><td className={tCls(r.t_alpha_lv)}>{fx(r.t_alpha_lv as number)}</td>
+              <td>{fx(r.net10_sharpe as number)}</td><td>{fx(r.net25_sharpe as number)}</td><td>{fx(r.net50_sharpe as number)}</td>
+              <td>{(r.breakeven_bps as number) > 0 ? `${fx(r.breakeven_bps as number, 0)} bps` : "none"}</td>
+            </tr>))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AlphaTables({ rows, label }: { rows: Row[]; label: string }) {
+  const ls = rows.filter((r) => (r.series === "LS net 25bps" || r.series === "LS gross") && ["CAPM", "FF5+Mom", "FF5+Mom+LowVol"].includes(String(r.model)));
+  const legs = rows.filter((r) => String(r.series).includes("leg") && ["CAPM", "FF5+Mom", "FF5+Mom+LowVol"].includes(String(r.model)));
+  return (
+    <div className="cols-2">
+      <div className="table-wrap">
+        <table>
+          <caption>{label}: primary long-short on factor returns, Newey-West (6 lags) t-statistics.</caption>
+          <thead><tr><th>Series</th><th>Model</th><th>α / yr</th><th>t</th><th>Mkt β</th><th>Mom β</th><th>Low-vol β</th><th>adj. R²</th></tr></thead>
+          <tbody>{ls.map((r, i) => (
+            <tr key={i}><td>{String(r.series).replace("LS ", "").replace("25bps", "25 bps")}</td><td>{r.model as string}</td><td>{pct(r.alpha_ann as number)}</td>
+              <td className={tCls(r.t_alpha)}>{fx(r.t_alpha as number)}</td><td>{fx(r.b_mktrf as number)}</td><td>{fx(r.b_mom as number)}</td><td>{fx(r.b_lowvol as number)}</td><td>{fx(r.r2_adj as number)}</td></tr>))}
+          </tbody>
+        </table>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <caption>{label}: each leg's excess return. A negative short-leg alpha means shorting those stocks added value.</caption>
+          <thead><tr><th>Leg</th><th>Model</th><th>α / yr</th><th>t</th><th>Mkt β</th></tr></thead>
+          <tbody>{legs.map((r, i) => (
+            <tr key={i}><td>{String(r.series).replace(" (excess)", "")}</td><td>{r.model as string}</td><td>{pct(r.alpha_ann as number)}</td>
+              <td className={tCls(r.t_alpha)}>{fx(r.t_alpha as number)}</td><td>{fx(r.b_mktrf as number)}</td></tr>))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function LadderTable({ rows, caption }: { rows: Row[]; caption: string }) {
+  const sorted = [...rows].sort((a, b) => (b.ic_mean as number) - (a.ic_mean as number));
+  return (
+    <div className="table-wrap">
+      <table>
+        <caption>{caption}</caption>
+        <thead><tr><th>Features</th><th>Model</th><th>Mean IC</th><th>IC t (NW)</th><th>IC &gt; 0</th><th>OOS R²</th><th>Hit rate</th><th>L/S Sharpe</th><th>FF5+Mom α</th><th>α t</th></tr></thead>
+        <tbody>
+          {sorted.map((r) => (
             <tr key={`${r.set}${r.model}`} className={r.set === "ALL" && r.model === "ens" ? "primary" : ""}>
               <td>{SET_LABEL[r.set as string]}</td><td>{MODEL_LABEL[r.model as string]}</td>
               <td>{fx(r.ic_mean as number, 4)}</td><td className={tCls(r.ic_t_nw)}>{fx(r.ic_t_nw as number)}</td>
@@ -44,6 +92,18 @@ export function Ladder() {
         </tbody>
       </table>
     </div>
+  );
+}
+
+export function Ladder() {
+  const m = useData<Models>("models");
+  if (!m) return null;
+  const note = "IC = monthly Spearman correlation of prediction with next-month return rank; R² against a zero forecast of the centred rank; long-short = capped value-weighted top minus bottom decile, gross.";
+  return (
+    <>
+      <LadderTable rows={m.ladder_dev} caption={`Out-of-sample model ladder, development window 2014–2021 (96 months). ${note}`} />
+      {m.ladder_final && <LadderTable rows={m.ladder_final} caption="The frozen models on the locked test window (from 2022-01), run once after the design was frozen." />}
+    </>
   );
 }
 
@@ -81,10 +141,8 @@ export function Results() {
   useTheme();
   if (!s) return <p className="loading">Loading results…</p>;
   const ink = cssVar("--ink"), ink3 = cssVar("--ink-3"), teal = cssVar("--teal"), amber = cssVar("--amber"), neg = cssVar("--neg");
-  const shapes = testShape(s.test_start, s.unlocked);
-  const v = Object.fromEntries(s.variants.map((r) => [r.variant as string, r]));
+  const shapes = testShape(s.test_start, s.test_end, s.unlocked);
   const icRoll = (x: Series) => ({ x: x.x.slice(11), y: x.y.map((_, i) => i < 11 ? NaN : x.y.slice(i - 11, i + 1).reduce((a, b) => a + b, 0) / 12).slice(11) });
-  const alphaRows = s.alphas.filter((r) => r.series === "LS net 25bps" || r.series === "LS gross");
   return (
     <Section id="results" title="Results">
       <div className="prose"><p>The primary strategy, fixed before any result was seen, sorts stocks each month on the ensemble
@@ -135,46 +193,12 @@ export function Results() {
       <h3>Model ladder</h3>
       <Ladder />
       <h3>Strategy variants</h3>
-      <div className="table-wrap">
-        <table>
-          <caption>All construction variants over the same months. Turnover is the monthly fraction of capital traded across both legs;
-            break-even is the one-way cost that would erase the gross return.</caption>
-          <thead><tr><th>Construction</th><th>Ann. mean</th><th>Vol</th><th>Sharpe</th><th>Sortino</th><th>Max DD</th><th>Calmar</th><th>Turnover / mo</th>
-            <th>Net 10 bps</th><th>Net 25 bps</th><th>Net 50 bps</th><th>Break-even</th></tr></thead>
-          <tbody>
-            {Object.keys(v).map((k) => { const r = v[k]; return (
-              <tr key={k} className={k === "d10_vw" ? "primary" : ""}>
-                <td>{VARIANT_LABEL(k)}</td><td>{pct(r.ann_mean as number)}</td><td>{pct(r.ann_vol as number)}</td><td>{fx(r.sharpe as number)}</td>
-                <td>{fx(r.sortino as number)}</td><td>{pct(r.max_dd as number)}</td><td>{fx(r.calmar as number)}</td><td>{pct(r.turnover_m as number, 0)}</td>
-                <td>{fx(r.net10_sharpe as number)}</td><td>{fx(r.net25_sharpe as number)}</td><td>{fx(r.net50_sharpe as number)}</td><td>{fx(r.breakeven_bps as number, 0)} bps</td>
-              </tr>); })}
-          </tbody>
-        </table>
-      </div>
+      <VariantTable rows={s.variants} caption="Development window, 2014–2021. All construction variants over the same months. Turnover is the monthly fraction of capital traded across both legs; break-even is the one-way cost that would erase the gross return." />
+      {s.variants_test && <VariantTable rows={s.variants_test} caption={`Locked test window, ${s.test_start} to ${s.test_end}, run once after the design was frozen.`} />}
       <p className="small prose">Net columns are Sharpe ratios after the stated one-way cost on every dollar traded.</p>
-      <h3>Factor alphas</h3>
-      <div className="table-wrap">
-        <table>
-          <caption>Time-series regressions of the primary long-short on factor returns, Newey-West (6 lags) t-statistics.</caption>
-          <thead><tr><th>Series</th><th>Model</th><th>α / yr</th><th>t</th><th>Market β</th><th>SMB</th><th>HML</th><th>RMW</th><th>CMA</th><th>Mom</th><th>adj. R²</th></tr></thead>
-          <tbody>
-            {alphaRows.map((r, i) => (
-              <tr key={i}><td>{r.series as string}</td><td>{r.model as string}</td><td>{pct(r.alpha_ann as number)}</td><td className={tCls(r.t_alpha)}>{fx(r.t_alpha as number)}</td>
-                <td>{fx(r.b_mktrf as number)}</td><td>{fx(r.b_smb as number)}</td><td>{fx(r.b_hml as number)}</td><td>{fx(r.b_rmw as number)}</td>
-                <td>{fx(r.b_cma as number)}</td><td>{fx(r.b_mom as number)}</td><td>{fx(r.r2_adj as number)}</td></tr>))}
-          </tbody>
-        </table>
-      </div>
-      <h3>Legs</h3>
-      <div className="table-wrap">
-        <table>
-          <caption>Long and short legs separately, excess of the T-bill rate. A negative short-leg alpha means shorting those stocks added value.</caption>
-          <thead><tr><th>Leg</th><th>Model</th><th>α / yr</th><th>t</th><th>Market β</th></tr></thead>
-          <tbody>{s.alphas.filter((r) => String(r.series).includes("leg") && (r.model === "CAPM" || r.model === "FF5+Mom")).map((r, i) => (
-            <tr key={i}><td>{r.series as string}</td><td>{r.model as string}</td><td>{pct(r.alpha_ann as number)}</td><td className={tCls(r.t_alpha)}>{fx(r.t_alpha as number)}</td><td>{fx(r.b_mktrf as number)}</td></tr>))}
-          </tbody>
-        </table>
-      </div>
+      <h3>Factor alphas and legs</h3>
+      <AlphaTables rows={s.alphas} label="Development window, 2014–2021" />
+      {s.alphas_test && <AlphaTables rows={s.alphas_test} label={`Locked test window, ${s.test_start} to ${s.test_end}`} />}
       <h3>The single signals behind the model</h3>
       <SingleSignals />
     </Section>

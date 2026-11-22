@@ -129,3 +129,35 @@ Verified caps: NVDA May-2024 $2.74T, AAPL Jun-2015 $723B, MSFT Dec-2012 $225B. T
 - C+marketing with the flag: IC 0.0508.
 
 Conclusion: the gain comes from the call-language scores, not the flag. These diagnostics also show that the IC gains do **not** produce factor-adjusted long-short alpha (VW decile FF5+Mom α t ≈ −0.2 to 0.2). This finding is reported; it does not change the pre-specified primary strategy.
+
+## D. Design freeze and test unlock
+
+**D-027 — 2026-11-22 — Design frozen; locked test window unlocked.** Development work is complete:
+- single signals and Fama-MacBeth;
+- the full walk-forward ladder;
+- 3-month horizon, alternative lags and the marketing-flag diagnostic;
+- tear sheet, placebo, shuffled-label retrain, PBO, DSR and SHAP, all on 2010/2014–2021 only.
+
+No result from 2022-01 → 2025-06 has been computed or viewed before this entry. Frozen choices: the features, learners, grids and walk-forward protocol (D-023, D-025); the primary strategy (ensemble of ENet/LGBM/XGB/MLP on ALL features, capped-VW decile long-short, net of 25 bps); and the universe and timing rules (D-005–D-009, D-018, D-021, D-022). The dev results did **not** change the primary specification, even though it performed worst among the construction variants (VW decile gross Sharpe 0.08 vs EW 0.46). Switching to the best-looking variant now would be selection on dev results; EW is reported alongside as a secondary variant. Action: set `config.test.unlocked = true` and run the frozen pipeline once on test years 2022–2025 (`python -m src.models.run_ml --final`). The models keep expanding annually inside the test window, as in development: the 2023 model trains on data to 2022-11.
+
+**D-028 — 2026-11-22 — Data bug found through the test-window red flag; fixed; pipeline rerun end to end.**
+
+*What was seen.* The first locked-window run (D-027) produced implausible numbers: VW decile Sharpe 1.5–2.0 and FF5+Mom α t up to 5.3, vs ≤ 0.36 and ≤ 1.1 in development. Controls-only models did best. Following the plan's red-flag rule (Sharpe > 1.5 or α t > 4 ⇒ presume a bug), I inspected the bottom decile.
+
+*Cause.* It held distressed firms with impossible caps: AGL at $127B with a $313 price, IRLA at $2,524/share, FOXO at $1,202. Yahoo was queried with `end=2025-12-31`. Its adjusted `Close` reflects every split up to the download date (Nov 2026), but split *events* are returned only inside the requested window. Reverse splits executed in 2026 (AGL 1:25 on 2026-03-31; IRLA 1:10 and 1:20; FOXO 1:3,000) were therefore missing. Raw prices and market caps were inflated by the split ratio, true penny stocks passed the $5 / $100M screens and received large value weights. Because the inflation comes from a *future* corporate action, this is look-ahead, and it concentrated soon-to-collapse firms in the short leg. The D-021 checks missed it: the errors (10–3,000×) still produced turnover above 0.1% and caps below 500× assets.
+
+*Fix.* Download with no end date (`src/data/prices.py`, `END = None`) so the split list and the price adjustment cover the same period. The flawed download is kept in `data/raw/yahoo_bad_end2025/` for audit. Every downstream stage is rebuilt: prices, panel, features, single signals, the dev ML ladder, diagnostics, alternative lags, h=3, the final window and the analysis.
+
+*Integrity of the test window.* The test window has now been evaluated once on flawed data. The correction is a mechanical data fix, not a design change: features, learners, grids, universe rules and the primary specification are unchanged from D-027, and nothing was tuned to the test results. The corrected test run is reported. The flawed run's summary is kept here for transparency (`results/tables/ml_summary_final_h1_BUGGY_pre_D028.csv`).
+
+**D-029 — 2026-11-22 — Fixes from the independent reviewer audit (Phase 8 reviewer, run early).** The reviewer confirmed no look-ahead in panel timing, features, walk-forward or backtest arithmetic, and raised the items below. All are applied before the full rerun that D-028 requires.
+1. *Time-varying survivorship (critical, cannot be fixed on free data).* Every sampled stock survives to late 2025, so a 2014 stock had to survive ~11 more years but a 2023 stock only ~2. Losers are therefore missing mostly from the *development* window, which flatters the dev short leg; dev and test are not comparable. Responses: stated as the lead caveat on the site and in Limitations; long and short legs reported separately; a new alpha model adds a low-volatility factor built inside this same sample (FF5+Mom+LowVol), so alpha against it isolates anything beyond the low-vol anomaly under identical survivorship. H5 (ALL vs C on identical rows) is the comparison least affected.
+2. *Ensemble.* The code averaged raw predictions, so the MLP (largest prediction spread) dominated. RESEARCH_DESIGN §3 pre-registered an equal-weight *rank* ensemble, so the code is corrected to match the pre-registration (rank within month, then average). OOS R² is undefined for a rank ensemble and is reported as n/a.
+3. `_oos` crashed when unlocked (no TEXT final predictions): final predictions are appended only if they exist.
+4. *Sample end 2025-06 → 2025-05.* In 2025-06 the universe halves (727 names vs ~1,600), because FY2024 10-Ks are absent and the 15-month cap expires the Feb-2024 filers. The test window becomes 2022-01 → 2025-05 (41 months).
+5. *Return cleaning.* The spike-and-reversal rule used ret(t+1) to decide whether ret(t) exists, so it is dropped. The impossible (< −100%) and > +1,000% rules remain.
+6. *h=3.* Dev formation months stop at 2021-10 (labels never read 2022), and the fit/validation gap is now horizon + embargo.
+7. *DSR family = every dev-window spec in the log* (single sorts, ML ladder, diagnostics, alternative-lag runs, tear-sheet construction variants; test-window specs excluded). All trials are gross, so the tested primary series is gross too. The site's spec count uses the same N.
+8. *Tear sheet.* Dev and test statistics come from one continuous portfolio history (no artificial rebuild cost at 2022-01).
+9. *ZCA look-ahead suspicion.* The authors' ZCA whitening was likely fit on the full 2003–2025 sample. Robustness: LGBM with the 19 *raw* components in place of the ZCA ones (`C+R+Mraw`, logged).
+10. *Weight cap uses the current exchange (NYSE).* Kept, and noted in Limitations.
