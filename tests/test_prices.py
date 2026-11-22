@@ -42,3 +42,12 @@ def test_missing_month_breaks_return():
     d = pd.DataFrame({"date": dates, "ticker": "Z", "adj": [10.0, 11.0], "close": [10.0, 11.0],
                       "volume": 1.0, "div": 0.0, "split": 0.0})
     assert monthly_from_daily(d)["ret"].isna().all()
+
+
+def test_clean_returns_flags_errors_not_crashes():
+    from src.data.prices import clean_returns
+    m = pd.DataFrame({"ticker": "A", "month": pd.period_range("2020-01", periods=6, freq="M"),
+                      "ret": [-1.5, -0.9, 4.0, -0.8, 12.0, 0.5]})
+    out, st = clean_returns(m)
+    assert out["ret"].isna().tolist() == [True, False, True, True, True, False]   # -90% crash kept
+    assert st["total_blanked"] == 4

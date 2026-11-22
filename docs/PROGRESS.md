@@ -7,9 +7,9 @@
 | Phase | Status | Key outputs |
 |---|---|---|
 | 0 Environment, audit, plan | ✅ done 2026-11-22 | ENVIRONMENT.md, DATA_AUDIT.md, DECISIONS.md (audit + D-001…D-017), PLAN.md, pinned requirements |
-| 1 Research grounding | 🔄 literature subagent running → docs/LITERATURE.md; RESEARCH_DESIGN.md pending | |
-| 2 Point-in-time panel | 🔄 in progress | timing rules + tests ✅; risk loader ✅; marketing loader ✅; French factors/SIC maps ✅; SEC bulk + Yahoo downloads running |
-| 3 Features | ⏳ | |
+| 1 Research grounding | ✅ done 2026-11-22 | LITERATURE.md (16 verified works), RESEARCH_DESIGN.md (H1–H5, primary spec, hurdles) |
+| 2 Point-in-time panel | ✅ done 2026-11-22 | data/processed/panel.parquet (308,283 rows; 222k primary stock-months); 32 tests pass incl. no-look-ahead invariants on the real panel |
+| 3 Features | ✅ code done (src/features/signals.py, tests) | ~90 rank features in 4 groups |
 | 4 Models | ⏳ | |
 | 5 Backtest | ⏳ | |
 | 6 Robustness / SHAP | ⏳ | |
@@ -23,10 +23,16 @@
 - Yahoo universe: 4,535 risk CIKs with a current SEC ticker (3,746 on NYSE/Nasdaq) + SPY.
 - Old current-ticker coverage of risk firm-years: 26% (2005) → 76% (2024).
 
+## Phase 2 numbers
+- Yahoo: 4,456/4,536 tickers with data; 750,424 ticker-months; 548 returns blanked as errors (D-020).
+- Primary universe: 2010-01 → 2025-06, median 1,133 stocks/month (min 195 in early 2010, max 1,725). Extended EW universe from 2006-07.
+- Coverage funnel (`results/tables/coverage_funnel.csv`): firms in the primary universe per filing year = 929 (2012) → 1,899 (2024), i.e. 12–33% of all risk filings.
+- Sanity: our momentum decile L/S vs French UMD corr 0.79; size L/S vs SMB corr 0.81 (2010–2021).
+- Market-cap fixes D-021, capped VW D-022.
+
 ## Next steps
-1. When the downloads finish: parse submissions (SIC) and companyfacts (shares, book equity) → security master; build `prices_monthly`; check NVDA's June 2024 split against the market-cap math; sanity-replicate UMD/SMB.
-2. Panel (Task 2.4) with no-look-ahead tests, then coverage funnel.
-3. RESEARCH_DESIGN.md once LITERATURE.md lands.
+1. Phase 4: single-signal decile sorts + Fama-MacBeth (dev window, spec log), then walk-forward ML ladder.
+2. Phase 5 tear sheet.
 
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.

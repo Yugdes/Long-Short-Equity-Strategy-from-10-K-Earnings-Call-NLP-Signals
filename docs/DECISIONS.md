@@ -95,3 +95,20 @@ Robustness variants: an NYSE-20th-percentile microcap cut (using this sample's N
 **D-016 — 2026-11-22 — Git: local commits only.** Never push or add remotes; an `origin` remote already exists and is left untouched. Generated data (`data/interim`, `data/processed`, downloaded caches) is gitignored. Raw source data stays tracked via LFS as before. Small result JSON/CSV files that feed the site are tracked.
 
 **D-017 — 2026-11-22 — Execute the plan natively (superpowers:executing-plans), using subagents only for independent work: the literature review, and the leakage reviewer in Phase 8.** The brief forbids interactive Q&A, so the writing-plans hand-off question is skipped. Subagent-per-task was considered and rejected: the data tasks share interfaces tightly, and running them sequentially in one context avoids re-deriving context.
+
+## C. Phase 1–2 decisions
+
+**D-018 — 2026-11-22 — Amends D-009: the primary universe does *not* filter on current exchange.** Yahoo is pulled for the primary ticker of every risk CIK with any current SEC ticker (4,535 firms, 764 of them currently OTC). Many of today's OTC names traded on NYSE or Nasdaq earlier and were demoted after poor performance; their Yahoo history covers those years. Filtering on *current* exchange would delete exactly these losers and worsen survivorship bias. The price ≥ $5 and market cap ≥ $100M screens do the liquidity work instead. A current-NYSE/Nasdaq-only universe is run as a robustness check.
+
+**D-019 — 2026-11-22 — Phase 1 frozen: hypotheses H1–H5, the primary specification and the hurdles are in RESEARCH_DESIGN.md, written before any return-based result.** The primary strategy is a value-weighted decile L/S of the ML ensemble, net of 25 bps, rather than EW. This is the more conservative choice: text signals tend to be stronger in small stocks, and VW limits that.
+
+**D-020 — 2026-11-22 — Return cleaning (Yahoo data errors).** A monthly return is set to missing if it is < −100% (impossible), > +1,000%, or part of a spike-and-reversal (> +300% followed by < −75%: a bad tick). This blanks 548 of 750,424 ticker-months (0.07%; `results/tables/return_cleaning.csv`). Real crashes (e.g. −90%) are kept. The rejected alternative was the old pipeline's [−95%, +1,000%] truncation, which deleted genuine crashes.
+
+**D-021 — 2026-11-22 — Market-cap sanity checks.** Free XBRL shares × Yahoo prices produced impossible caps: unit errors (e.g. Oracle 2013 ×1,000) and reverse splits that Yahoo applies in `Close` but omits from its split list. Rules, using past data or same-month data only:
+1. Drop a share count that jumps more than 10× (or below 0.1×) against the median of the firm's previous 3 counts.
+2. Market cap is missing if it exceeds $5T, the raw price exceeds $100k, monthly dollar-volume turnover is outside [0.1%, 500%], or the cap exceeds 500× book assets.
+3. Price filters use the **raw** price, reconstructed as `Close` × the product of later splits. The split-adjusted price wrongly passed reverse-split names.
+
+Verified caps: NVDA May-2024 $2.74T, AAPL Jun-2015 $723B, MSFT Dec-2012 $225B. The residual errors I know of (ADS-ratio issuers such as BeiGene, a missing DuPont reverse split) are a few names, bounded at about 3–13×.
+
+**D-022 — 2026-11-22 — "Value-weighted" means capped value weights.** Market cap is winsorised each month at the 80th percentile of currently NYSE-listed names in the universe (Jensen, Kelly & Pedersen 2023 use NYSE 80th-percentile caps). Two reasons: (1) it limits mega-cap concentration (MSFT alone is 21% of the universe's cap in 2025-06); (2) it bounds the influence of the residual cap errors in D-021. Uncapped VW is reported as a robustness check.

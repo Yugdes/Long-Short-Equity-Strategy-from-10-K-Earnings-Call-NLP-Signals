@@ -88,6 +88,21 @@ def monthly_from_daily(daily: pd.DataFrame) -> pd.DataFrame:
     return m.drop(columns="adj")
 
 
+def clean_returns(m: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """D-020: blank out returns that are data errors, not market moves.
+    (a) ret < -100% (impossible); (b) ret > +1000%; (c) spike-and-reversal: ret_t > +300% followed by
+    ret_t+1 < -75% (classic bad tick) -> both months. Prices are kept; only `ret` is set to NaN."""
+    m = m.sort_values(["ticker", "month"]).copy()
+    nxt = m.groupby("ticker")["ret"].shift(-1)
+    spike = (m["ret"] > 3) & (nxt < -0.75)
+    rev = spike.groupby(m["ticker"]).shift(1, fill_value=False)
+    flags = {"lt_minus100": m["ret"] < -1, "gt_1000": m["ret"] > 10, "spike_reversal": spike | rev}
+    bad = flags["lt_minus100"] | flags["gt_1000"] | flags["spike_reversal"]
+    stats = {k: int(v.sum()) for k, v in flags.items()} | {"total_blanked": int(bad.sum()), "rows": len(m)}
+    m.loc[bad, "ret"] = np.nan
+    return m, stats
+
+
 def build_monthly() -> tuple[pd.DataFrame, pd.DataFrame]:
     """-> (prices_monthly, split events [ticker, date, ratio])."""
     out, out_s = path("interim") / "prices_monthly.parquet", path("interim") / "splits.parquet"
@@ -101,7 +116,8 @@ def build_monthly() -> tuple[pd.DataFrame, pd.DataFrame]:
         parts.append(monthly_from_daily(d))
         s = d[(d["split"] > 0) & (d["split"] != 1)][["ticker", "date", "split"]]
         splits.append(s.rename(columns={"split": "ratio"}))
-    m = pd.concat(parts, ignore_index=True)
+    m, stats = clean_returns(pd.concat(parts, ignore_index=True))
+    pd.Series(stats).to_csv(path("results") / "tables" / "return_cleaning.csv", header=["n"])
     s = pd.concat(splits, ignore_index=True)
     m.to_parquet(out, index=False)
     s.to_parquet(out_s, index=False)
