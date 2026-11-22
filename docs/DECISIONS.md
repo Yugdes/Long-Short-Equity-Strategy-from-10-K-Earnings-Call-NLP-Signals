@@ -174,3 +174,20 @@ No result from 2022-01 → 2025-06 has been computed or viewed before this entry
   - The conclusions of both entries are unchanged.
 
 Current values: `results/tables/ml_summary_dev_h1.csv`, `ml_diagnostics_dev.csv`, `results/json/strategy.json`.
+
+**D-031 — 2026-11-23 — H4 3×3 conditional double sort run (pre-registered, previously omitted).** RESEARCH_DESIGN §2 listed "3×3 conditional double sorts" as one of H4's deciding tests, but only the Fama-MacBeth interaction and the ML interaction features had been run. It was added after the user asked whether marketing offsets the return effect of high risk.
+- *Construction* (`src/backtest/portfolios.py::double_sort`, `src/evaluation/single_signals.py::run_double_sort`):
+  - Each month, on marketing-covered rows in the dev window (2010–2021), stocks are first split into terciles of operations risk.
+  - The risk measure is either the level (`r_operations_prob`) or the change versus the previous 10-K (`r_d_operations_prob`).
+  - Within each risk tercile, stocks are split into terciles of a marketing construct (orientation, capabilities, excellence).
+  - Portfolios are EW and capped VW, using month-t excess returns. Cells with fewer than 20 stocks are dropped.
+- *Test statistic.* The "cushion" is (high minus low marketing within the high-risk tercile) minus (the same within the low-risk tercile). H4 predicts it is positive.
+- *Trials.* 24 trials (the high-risk marketing spread and the cushion, for each of the 12 specs) are logged to `spec_log.csv` under `single_sort`. The DSR family grows from 99 to 123 trials, and the deflated Sharpe probability of the primary strategy falls from 0.11 to 0.08. No other number changed.
+- *Result* (value-weighted, FF5+Mom α t; `results/tables/double_sort_dev.csv`):
+  - Cushion on the risk *level*: −2.20 to −1.04, the wrong sign.
+  - Cushion on the risk *change*: +1.70 to +2.26.
+  - Among firms whose operations risk rose most, high-marketing firms beat low-marketing ones by 0.26–0.29% a month (α t 2.1–2.3).
+  - Rising risk itself carries no significant return penalty.
+  - Nothing clears |t| ≥ 3.
+- *Verdict.* The site's H4 verdict now uses the larger of the FM interaction t and the VW cushion α t, and moves from "Not supported" to "Below hurdle" (2.26, right sign).
+- *Window.* The double sort is a development-window hypothesis test like the other single-signal sorts; it is not run on the test window.

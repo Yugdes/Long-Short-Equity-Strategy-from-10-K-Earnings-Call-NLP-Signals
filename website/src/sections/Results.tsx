@@ -135,6 +135,84 @@ export function SingleSignals() {
   );
 }
 
+const RISK_LABEL: Record<string, string> = { r_operations_prob: "Operations risk level", r_d_operations_prob: "Change in operations risk" };
+const MKT_LABEL: Record<string, string> = { mkt_orient: "Market orientation", mkt_capab: "Marketing capabilities", mkt_excel: "Marketing excellence" };
+
+/** H4 pre-registered 3x3 conditional double sort: risk terciles, then marketing terciles within each (D-031). */
+export function DoubleSort() {
+  const m = useData<{ double_sort_dev: Row[]; double_sort_cells_dev: Row[] }>("models");
+  const [risk, setRisk] = useState("r_d_operations_prob");
+  const [mkt, setMkt] = useState("mkt_capab");
+  const [w, setW] = useState("vw");
+  if (!m?.double_sort_dev) return null;
+  const S = m.double_sort_dev;
+  const get = (r: string, c: string, wt: string, s: string) => S.find((x) => x.risk === r && x.mkt === c && x.weight === wt && x.series === s)!;
+  const cell = (i: number, j: number) => m.double_sort_cells_dev.find((x) => x.risk === risk && x.mkt === mkt && x.weight === w && x.risk_t === i && x.mkt_t === j)!;
+  const cush = S.filter((x) => x.series === "cushion" && x.weight === "vw");
+  const best = cush.reduce((b, x) => ((x.t_alpha as number) > (b.t_alpha as number) ? x : b), cush[0]);
+  const lvl = cush.filter((x) => x.risk === "r_operations_prob").map((x) => x.t_alpha as number);
+  const chg = cush.filter((x) => x.risk === "r_d_operations_prob").map((x) => x.t_alpha as number);
+  const rng = (a: number[]) => `${fx(Math.min(...a))} to ${fx(Math.max(...a))}`;
+  return (
+    <>
+      <div className="prose">
+        <p>Does marketing soften the return penalty of operational risk (H4)? Each month, stocks with marketing scores are split
+          into thirds by operations risk, then each third is split again by a marketing construct. The <i>cushion</i> is how much
+          more high-marketing firms beat low-marketing firms among the riskiest third than among the safest third; H4 predicts it is
+          positive. Value-weighted, its FF5 + momentum α t ranges over {rng(lvl)} for the risk level and {rng(chg)} for the change in
+          risk. The largest is {fx(best.t_alpha as number)} ({RISK_LABEL[best.risk as string].toLowerCase()} × {MKT_LABEL[best.mkt as string].toLowerCase()}),
+          {(best.t_alpha as number) >= 3 ? " clearing" : " short of"} the |t| ≥ 3 hurdle. Note that operations risk itself carries no return penalty to soften
+          (see the single signals above).</p>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <caption>3 × 3 conditional double sorts, development window 2010–2021, marketing-covered stocks, value-weighted, monthly excess
+            returns. Spread = top minus bottom marketing third within a risk third; cushion = high-risk spread minus low-risk spread.</caption>
+          <thead><tr><th>Risk measure</th><th>Marketing construct</th><th>Spread, high risk / mo</th><th>α t</th><th>Spread, low risk / mo</th>
+            <th>Cushion / mo</th><th>t</th><th>α t</th></tr></thead>
+          <tbody>
+            {Object.keys(RISK_LABEL).flatMap((r) => Object.keys(MKT_LABEL).map((c) => {
+              const hi = get(r, c, "vw", "mkt_spread_high_risk"), lo = get(r, c, "vw", "mkt_spread_low_risk"), cu = get(r, c, "vw", "cushion");
+              return (
+                <tr key={r + c}>
+                  <td>{RISK_LABEL[r]}</td><td>{MKT_LABEL[c]}</td>
+                  <td>{pct(hi.mean_m as number, 2)}</td><td className={tCls(hi.t_alpha)}>{fx(hi.t_alpha as number)}</td>
+                  <td>{pct(lo.mean_m as number, 2)}</td>
+                  <td>{pct(cu.mean_m as number, 2)}</td><td className={tCls(cu.t_nw)}>{fx(cu.t_nw as number)}</td>
+                  <td className={tCls(cu.t_alpha)}>{fx(cu.t_alpha as number)}</td>
+                </tr>);
+            }))}
+          </tbody>
+        </table>
+      </div>
+      <div className="controls">
+        <select aria-label="Risk measure" value={risk} onChange={(e) => setRisk(e.target.value)}>
+          {Object.entries(RISK_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select aria-label="Marketing construct" value={mkt} onChange={(e) => setMkt(e.target.value)}>
+          {Object.entries(MKT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select aria-label="Weighting" value={w} onChange={(e) => setW(e.target.value)}>
+          <option value="vw">Value-weighted</option><option value="ew">Equal-weighted</option>
+        </select>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <caption>Average monthly excess return in each of the nine portfolios (t in brackets).</caption>
+          <thead><tr><th>{RISK_LABEL[risk]}</th><th>Low marketing</th><th>Middle</th><th>High marketing</th></tr></thead>
+          <tbody>
+            {[3, 2, 1].map((i) => (
+              <tr key={i}>
+                <td>{["Lowest third", "Middle third", "Highest third"][i - 1]}</td>
+                {[1, 2, 3].map((j) => { const c = cell(i, j); return <td key={j}>{pct(c.mean_m as number, 2)} ({fx(c.t_nw as number, 1)})</td>; })}
+              </tr>))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
 /** Drawdown narrative computed from the exported series (descriptive window 2019-12 to 2021-06 chosen after inspecting the chart). */
 function ddText(s: Strategy) {
   const y = s.drawdown.y, x = s.drawdown.x, i = y.indexOf(Math.min(...y));
@@ -211,6 +289,8 @@ export function Results() {
       {s.alphas_test && <AlphaTables rows={s.alphas_test} label={`Locked test window, ${s.test_start} to ${s.test_end}`} />}
       <h3>The single signals behind the model</h3>
       <SingleSignals />
+      <h3>Does marketing cushion operational risk?</h3>
+      <DoubleSort />
     </Section>
   );
 }

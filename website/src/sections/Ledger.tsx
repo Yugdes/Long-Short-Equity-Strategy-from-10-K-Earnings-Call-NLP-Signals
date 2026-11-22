@@ -1,6 +1,6 @@
 import { Row, fx, useData } from "../lib";
 
-type Models = { ladder_dev: Row[]; single_sorts_dev: Row[]; fama_macbeth_dev: Row[]; vol_prediction_dev: Row[]; interaction_fm_dev: Row[] };
+type Models = { ladder_dev: Row[]; single_sorts_dev: Row[]; fama_macbeth_dev: Row[]; vol_prediction_dev: Row[]; interaction_fm_dev: Row[]; double_sort_dev: Row[] };
 
 /** Tags. The only pre-registered threshold is the hurdle |t| >= 3 in the predicted direction (RESEARCH_DESIGN §3):
  *  "Supported" = cleared; "Below hurdle" = right sign with 2 <= t < 3 (descriptive tier, not pre-registered);
@@ -40,6 +40,10 @@ export function Ledger() {
   const h3best = maxBy(h3, "t_alpha", 1);
   // H4: Fama-MacBeth interaction slope (predicted positive); plus the IC the interaction features add to the model
   const h4best = maxBy(m.interaction_fm_dev, "t_nw", 1);
+  // ... and the pre-registered 3x3 double sort: value-weighted "cushion" portfolio, FF5+Mom alpha t (D-031)
+  const cush = m.double_sort_dev.filter((r) => r.series === "cushion" && r.weight === "vw");
+  const h4ds = maxBy(cush, "t_alpha", 1), h4dsMin = Math.min(...cush.map((r) => r.t_alpha as number));
+  const h4t = Math.max(h4best.t_nw as number, h4ds.t_alpha as number);
   const d4 = ["enet", "lgbm"].map((k) => (lad("ALL", k).ic_mean as number) - (lad("C+R+M", k).ic_mean as number));
   // H5 (pre-registered): paired monthly IC difference ALL vs controls (NW t) AND net alpha of the primary strategy
   const inc = sum.ic_increment.ens;
@@ -53,8 +57,8 @@ export function Ledger() {
       out: `Most negative of ${h2.length} statistics across change and surprise signals: t = ${fx(h2best.t_alpha as number)} (${String(h2best.signal).replace("r_", "")}).` },
     { id: "H3", claim: "Marketing emphasis on earnings calls predicts higher returns.", v: verdict(h3best.t_alpha as number, 1),
       out: `Largest of ${h3.length} statistics across marketing levels and changes: t = ${fx(h3best.t_alpha as number)} (${String(h3best.signal).replace("r_", "")}), ${(h3best.t_alpha as number) >= 3 ? "clearing" : "short of"} the |t| ≥ 3 hurdle.` },
-    { id: "H4", claim: "Risk × marketing interactions carry information neither carries alone.", v: verdict(h4best.t_nw as number, 1),
-      out: `Largest Fama-MacBeth interaction slope: t = ${fx(h4best.t_nw as number)} (${String(h4best.interaction).replace("x_", "")}); adding interaction features changes model IC by ${d4.map((x) => (x >= 0 ? "+" : "") + fx(x, 4)).join(" (elastic net) and ")} (LightGBM).` },
+    { id: "H4", claim: "Risk × marketing interactions carry information neither carries alone.", v: verdict(h4t, 1),
+      out: `Largest Fama-MacBeth interaction slope: t = ${fx(h4best.t_nw as number)} (${String(h4best.interaction).replace("x_", "")}). 3 × 3 double sorts: the value-weighted "cushion" α t runs from ${fx(h4dsMin)} to ${fx(h4ds.t_alpha as number)} (largest: ${h4ds.risk === "r_d_operations_prob" ? "change in operations risk" : "operations risk level"} × ${{ mkt_orient: "market orientation", mkt_capab: "marketing capabilities", mkt_excel: "marketing excellence" }[String(h4ds.mkt)]}), ${(h4ds.t_alpha as number) >= 3 ? "clearing" : "short of"} the hurdle. Adding interaction features changes model IC by ${d4.map((x) => (x >= 0 ? "+" : "") + fx(x, 4)).join(" (elastic net) and ")} (LightGBM).` },
     { id: "H5", claim: "A machine-learning combination of text and controls beats controls alone and survives costs.", v: h5v,
       out: `Ensemble IC ${fx(inc.ic_all as number, 4)} with text vs ${fx(inc.ic_controls as number, 4)} controls only: difference t = ${fx(tInc)}; primary strategy net-of-cost FF5+Mom alpha t = ${fx(tNet)}.` },
   ];

@@ -19,7 +19,7 @@ The pipeline builds a monthly stock panel in which every number is public before
 | Primary strategy (capped-VW decile L/S, net of 25 bps): Sharpe | −0.12 (2014–2021); 0.51 (test) |
 | Primary strategy: FF5 + momentum alpha, net | −4.9% a year (t = −0.9); test −4.6% a year (t = −0.8) |
 | Turnover and breadth | buys plus sells in both legs equal 214% of one leg's capital per month (about 54% one-way per leg); 116 names per leg |
-| Multiple testing | deflated Sharpe probability 0.11 over 99 development specs; probability of backtest overfitting 0.88 |
+| Multiple testing | deflated Sharpe probability 0.08 over 123 development specs; probability of backtest overfitting 0.88 |
 | Placebo and shuffled labels | IC p = 0.000, Sharpe p = 0.042; shuffled-label IC 0.0073 |
 | Disclosed risk and future volatility | pre-registered test fails: operations risk t = 0.1, aggregate risk t = −1.0 (predicted positive); exploratory: 5 of 8 individual factors have t-statistics of 3 or more in size after controls (2 higher, 3 lower) |
 

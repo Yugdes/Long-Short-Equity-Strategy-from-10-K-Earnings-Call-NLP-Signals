@@ -33,7 +33,7 @@
 ## Phase 4 numbers (dev window, 2010–2021 for sorts / FM)
 - 42 single-signal decile sorts (EW+VW): **none clears |t| ≥ 3**. Best: Δ marketing excellence YoY VW α t = 2.91; non-op risk level EW L/S t = 2.69 (high risk earns *more*: risk-premium reading).
 - H2 (risk increases → lower returns): null (|t| < 1.8 everywhere).
-- H4 interaction FM: null (max t = 0.82).
+- H4 interaction FM: null (max t = 0.89). 3×3 double sort (D-031): VW cushion α t −2.2 to −1.0 for risk level (wrong sign), +1.7 to +2.3 for risk change (right sign, below hurdle) → H4 "Below hurdle".
 - H1(a) volatility: risk text predicts next-12m volatility after controls: legal t = 5.7, marketing 3.3, technology 2.7 (higher vol); accounting −11.8, management −5.8, finance −3.7 (lower vol).
 
 ## ML ladder (dev OOS 2014–2021, 96 months)
@@ -49,7 +49,7 @@
 - Corrected dev (2014–2021): ens ALL IC 0.041 (t 3.6), VW d10 gross Sharpe 0.28, FF5+Mom α t 0.37. Corrected test (2022-01–2025-05): IC 0.048–0.067, VW gross Sharpe −0.03–1.2, α t −2.5 to 1.0; text adds nothing over controls in test.
 
 ## Final numbers (definitive run)
-See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), test IC 0.060 (t 4.5; controls-only 0.064). Primary net Sharpe −0.12 dev / 0.51 test; net FF5+Mom α t −0.85 / −0.83. DSR 0.11 (99 specs), PBO 0.88. Verdict: prediction yes, alpha no; text adds little beyond known characteristics; risk text predicts volatility (5/8 factors, both signs).
+See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), test IC 0.060 (t 4.5; controls-only 0.064). Primary net Sharpe −0.12 dev / 0.51 test; net FF5+Mom α t −0.85 / −0.83. DSR 0.08 (123 specs, after D-031's 24 double-sort trials; 0.11 over 99 before), PBO 0.88. Verdict: prediction yes, alpha no; text adds little beyond known characteristics; risk text predicts volatility (5/8 factors, both signs).
 
 ## Next steps (open items for the user)
 1. The final report has not been written; the brief says to wait to be asked.
@@ -60,3 +60,4 @@ See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), t
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.
 - 2026-11-22: Phases 1–8 complete. Test unlocked (D-027); split look-ahead bug found and fixed (D-028); two independent reviews applied (D-029, D-030); definitive clean rerun.
+- 2026-11-23: Added the pre-registered H4 3×3 double sort (D-031): code, test, site table and ledger; reran single → analysis → export → notebooks.

@@ -31,6 +31,19 @@ def test_vw_toy_returns():
     assert np.isclose(jan["P2"], (100 * 0.05 - 100 * 0.10) / 200)
 
 
+def test_double_sort_is_conditional():
+    # 8 stocks, n=2: first sort on a, then b *within* each a-half
+    from src.backtest.portfolios import double_sort
+    d = pd.DataFrame({"month": pd.PeriodIndex(["2020-01"] * 8, freq="M"), "cik": range(8),
+                      "a": [1, 2, 3, 4, 5, 6, 7, 8], "b": [8, 7, 6, 5, 1, 2, 3, 4],
+                      "ret": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08]})
+    c = double_sort(d, "a", "b", n=2, min_names=1).iloc[0]
+    # low a = {0..3}: low b = {2,3}, high b = {0,1}; high a = {4..7}: low b = {4,5}, high b = {6,7}
+    assert np.isclose(c[(1, 1)], 0.035) and np.isclose(c[(1, 2)], 0.015)
+    assert np.isclose(c[(2, 1)], 0.055) and np.isclose(c[(2, 2)], 0.075)
+    assert double_sort(d, "a", "b", n=2, min_names=3).iloc[0].isna().all()
+
+
 def test_turnover_and_costs_toy():
     rets, h = sort_portfolios(_toy(), "score", n=2, weight="ew", min_names=1)
     to = ls_turnover(h, n=2)

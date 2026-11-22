@@ -302,6 +302,8 @@ def export_json():
         "fama_macbeth_dev": _tab(pd.read_csv(T / "fama_macbeth_dev.csv")),
         "vol_prediction_dev": _tab(pd.read_csv(T / "vol_prediction_dev.csv")),
         "interaction_fm_dev": _tab(pd.read_csv(T / "interaction_fm_dev.csv")),
+        "double_sort_dev": _tab(pd.read_csv(T / "double_sort_dev.csv")),
+        "double_sort_cells_dev": _tab(pd.read_csv(T / "double_sort_cells_dev.csv")),
         "fm_forecast": _tab(res["fm_forecast"]),
         "diagnostics_dev": _tab(pd.read_csv(T / "ml_diagnostics_dev.csv")),
         **({"ladder_final": _tab(pd.read_csv(T / "ml_summary_final_h1.csv"))}

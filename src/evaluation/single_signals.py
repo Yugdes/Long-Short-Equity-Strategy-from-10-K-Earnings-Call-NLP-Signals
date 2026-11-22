@@ -96,3 +96,41 @@ def run_interaction_fm(feat: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out.to_csv(path("results") / "tables" / "interaction_fm_dev.csv", index=False)
     return out
+
+
+def run_double_sort(feat: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """H4, pre-registered 3x3 conditional double sort (D-031): terciles of operational risk (level, or change vs the
+    previous 10-K) each month, then terciles of a marketing construct within each risk tercile. Marketing-covered
+    rows, dev window, month-t excess returns. 'cushion' = (high-minus-low marketing among high-risk firms) minus
+    (the same among low-risk firms); H4 predicts > 0."""
+    from src.backtest.metrics import nw_tstat
+    from src.backtest.portfolios import double_sort
+    ff = load_ff_factors()
+    dev = dev_only(feat)
+    dev = dev[dev["has_mkt"] == 1]
+    rows, cells = [], []
+    for risk in ("r_operations_prob", "r_d_operations_prob"):
+        for c in ("mkt_orient", "mkt_capab", "mkt_excel"):
+            d = dev[dev[risk[2:]].notna() & dev[c].notna()]          # raw inputs present (no imputed zeros)
+            for w in ("ew", "vw"):
+                C = double_sort(d, risk, f"r_{c}", n=3, weight=w, ret_col="exret")
+                for (i, j), s in C.items():
+                    cells.append({"risk": risk, "mkt": c, "weight": w, "risk_t": i, "mkt_t": j,
+                                  "mean_m": s.mean(), "t_nw": nw_tstat(s)})
+                series = {"mkt_spread_high_risk": C[(3, 3)] - C[(3, 1)],
+                          "mkt_spread_low_risk": C[(1, 3)] - C[(1, 1)],
+                          "risk_spread_low_mkt": C[(3, 1)] - C[(1, 1)],
+                          "risk_spread_high_mkt": C[(3, 3)] - C[(1, 3)]}
+                series["cushion"] = series["mkt_spread_high_risk"] - series["mkt_spread_low_risk"]
+                for name, s in series.items():
+                    s = s.dropna()
+                    a = factor_alpha(s, ff, "FF5+Mom")
+                    rows.append({"risk": risk, "mkt": c, "weight": w, "series": name, "mean_m": s.mean(),
+                                 "t_nw": nw_tstat(s), "alpha_ann": a["alpha_ann"], "t_alpha": a["t_alpha"],
+                                 "n_months": len(s)})
+                    if name in ("mkt_spread_high_risk", "cushion"):          # the two tradeable H4 portfolios
+                        log_spec("single_sort", f"{risk}x{c}|{w}|3x3|{name}", s, hyp="H4", t_alpha=a["t_alpha"])
+    out, cell_df = pd.DataFrame(rows), pd.DataFrame(cells)
+    out.to_csv(path("results") / "tables" / "double_sort_dev.csv", index=False)
+    cell_df.to_csv(path("results") / "tables" / "double_sort_cells_dev.csv", index=False)
+    return out, cell_df

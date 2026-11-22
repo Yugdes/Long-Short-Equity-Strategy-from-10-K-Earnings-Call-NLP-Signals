@@ -32,6 +32,27 @@ def sort_portfolios(df: pd.DataFrame, score: str, n: int = 10, weight: str = "ew
     return rets.sort_index(), d[["month", "cik", "bin", "w", ret_col]].rename(columns={ret_col: "ret"})
 
 
+def double_sort(df: pd.DataFrame, first: str, second: str, n: int = 3, weight: str = "ew",
+                min_names: int = 20, ret_col: str = "ret", size_col: str = "mcap_cap") -> pd.DataFrame:
+    """Conditional (dependent) n x n sort: bins of `first` each month, then bins of `second` within each
+    `first` bin. -> DataFrame[month x MultiIndex (i, j)] of cell returns; i = first bin, j = second bin
+    (1 = lowest). Cells with fewer than `min_names` stocks are NaN."""
+    d = df.dropna(subset=[first, second, ret_col]).copy()
+    if weight == "vw":
+        d = d[d[size_col] > 0]
+    d["i"] = assign_bins(d, first, n)
+    d["j"] = assign_bins(d, second, n, neutral="i")
+    d["w"] = d[size_col] if weight == "vw" else 1.0
+    g = d.groupby(["month", "i", "j"])
+    d["w"] = d["w"] / g["w"].transform("sum")
+    d["wr"] = d["w"] * d[ret_col]
+    cells = d.groupby(["month", "i", "j"]).agg(r=("wr", "sum"), k=("wr", "size"))
+    cells.loc[cells["k"] < min_names, "r"] = np.nan
+    out = cells["r"].unstack(["i", "j"])
+    full = pd.MultiIndex.from_product([range(1, n + 1)] * 2, names=["i", "j"])
+    return out.reindex(columns=full).sort_index()
+
+
 def leg_turnover(h: pd.DataFrame) -> pd.Series:
     """Sum_i |w_it - drifted w_i,t-1| per month for one leg (2 x one-way turnover; 1.0 in the first month)."""
     h = h.copy()
