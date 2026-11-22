@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Ledger } from "./Ledger";
 
 export function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -36,6 +37,7 @@ export function Design() {
         <p>The hypotheses, the primary strategy and the significance hurdle were written down before any return was
           examined. The final 42 months (January 2022 to June 2025) were locked until the design was frozen.</p>
       </div>
+      <Ledger />
     </Section>
   );
 }

@@ -79,3 +79,20 @@ def run_vol_prediction(feat: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(rows)
     out.to_csv(path("results") / "tables" / "vol_prediction_dev.csv", index=False)
     return out
+
+
+def run_interaction_fm(feat: pd.DataFrame) -> pd.DataFrame:
+    """H4: Fama-MacBeth of exret on OpRisk, a marketing construct, their product and the 10 controls
+    (marketing-covered rows). Predicted sign of the interaction: positive (marketing attenuates the risk penalty)."""
+    dev = dev_only(feat)
+    d = dev[dev["has_mkt"] == 1]
+    ctrl = FEATURE_GROUPS["controls"]
+    rows = []
+    for c in ["mkt_orient", "mkt_capab", "mkt_excel"]:
+        for risk, x in (("r_operations_prob", f"x_ops_{c}"), ("r_d_operations_prob", f"x_dops_{c}")):
+            fm = fama_macbeth(d, "exret", [risk, f"r_{c}", x] + ctrl)
+            rows.append({"interaction": x, "coef": fm.loc[x, "coef"], "t_nw": fm.loc[x, "t_nw"],
+                         "risk_t": fm.loc[risk, "t_nw"], "mkt_t": fm.loc[f"r_{c}", "t_nw"], "n_months": fm.loc[x, "n_months"]})
+    out = pd.DataFrame(rows)
+    out.to_csv(path("results") / "tables" / "interaction_fm_dev.csv", index=False)
+    return out

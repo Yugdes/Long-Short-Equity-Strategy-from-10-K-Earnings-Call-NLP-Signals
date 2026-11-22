@@ -122,3 +122,10 @@ Verified caps: NVDA May-2024 $2.74T, AAPL Jun-2015 $723B, MSFT Dec-2012 $225B. T
 **D-024 — 2026-11-22 — H1's realised-volatility test uses formation months up to 2020-12 only.** The forward 12-month window then ends by 2021-12 and never reads the locked test window.
 
 **D-025 — 2026-11-22 — Reduced grids outside the primary horizon.** The 3-month-horizon robustness run uses ENet (ALL) and LGBM (C vs ALL) only. The final locked-window run uses all 4 learners on C and ALL plus the ensemble: what the frozen primary strategy and the H5 comparison need, and nothing else, so the test window is evaluated on as few specs as possible.
+
+**D-026 — 2026-11-22 — Diagnostic: is the marketing block's IC gain the language or the coverage flag?** Prompted by the dev-window LightGBM ladder (C 0.039 → C+R 0.036 → C+R+M 0.047). `has_mkt` (the firm holds earnings calls) could proxy for size or coverage, so three LGBM sets were run and logged as specs:
+- C+flag: IC 0.041;
+- C+marketing without the flag: IC 0.0505 (t 4.7);
+- C+marketing with the flag: IC 0.0508.
+
+Conclusion: the gain comes from the call-language scores, not the flag. These diagnostics also show that the IC gains do **not** produce factor-adjusted long-short alpha (VW decile FF5+Mom α t ≈ −0.2 to 0.2). This finding is reported; it does not change the pre-specified primary strategy.

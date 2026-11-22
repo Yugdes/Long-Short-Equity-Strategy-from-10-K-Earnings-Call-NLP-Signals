@@ -93,6 +93,27 @@ def run_analysis():
     res["tear"] = tearsheet(d)
     res["ic_primary"] = ic_series(d, "pred", "y_rank")
     res["ic_controls"] = ic_series(_oos(feat, "C", "ens"), "pred", "y_rank")
+    # H5: paired test of the IC added by text features, same rows and months (dev window)
+    from src.backtest.metrics import nw_tstat
+    inc = {}
+    for m in ("ens", "enet", "lgbm"):
+        a = ic_series(_oos(feat, "ALL", m), "pred", "y_rank")
+        b = ic_series(_oos(feat, "C", m), "pred", "y_rank")
+        diff = dev_only((a - b).dropna().to_frame("d"), None)["d"]
+        inc[m] = {"ic_all": float(dev_only(a.to_frame("a"), None)["a"].mean()), "ic_controls": float(dev_only(b.to_frame("b"), None)["b"].mean()),
+                  "diff_mean": float(diff.mean()), "diff_t_nw": nw_tstat(diff), "months_text_better": float((diff > 0).mean())}
+    res["ic_increment"] = inc
+    # does the forecast predict returns beyond the 10 characteristics? (FM, dev window)
+    from src.backtest.regressions import fama_macbeth
+    from src.features.signals import FEATURE_GROUPS
+    rows = []
+    for s_, m in (("ALL", "ens"), ("C", "ens"), ("ALL", "lgbm"), ("TEXT", "lgbm")):
+        dd = dev_only(_oos(feat, s_, m))
+        dd["r_pred"] = dd.groupby("month")["pred"].rank(pct=True) - 0.5
+        for label, xs in (("alone", ["r_pred"]), ("with_controls", ["r_pred"] + FEATURE_GROUPS["controls"])):
+            fm = fama_macbeth(dd, "exret", xs)
+            rows.append({"forecast": f"{s_}|{m}", "spec": label, "coef": fm.loc["r_pred", "coef"], "t_nw": fm.loc["r_pred", "t_nw"]})
+    res["fm_forecast"] = pd.DataFrame(rows)
     res["subperiods"] = rb.subperiod_table(res["tear"]["series"]["d10_vw"]["net25"], ff)
     res["size_buckets"] = rb.size_buckets(dev_only(d))
     res["industry_ic"] = rb.industry_ic(dev_only(d))
@@ -180,6 +201,7 @@ def export_json():
         "dsr": res["dsr"], "pbo": res["pbo"],
         "placebo": {k: v for k, v in res["placebo"].items() if not isinstance(v, np.ndarray)},
         "shuffled_label": res["shuffled_label"],
+        "ic_increment": res["ic_increment"],
     }
     if is_unlocked():
         test_net = prim["net25"][prim["net25"].index >= pd.Period(cfg["test"]["start"], "M")]
@@ -236,6 +258,9 @@ def export_json():
         "single_sorts_dev": _tab(pd.read_csv(T / "single_signal_sorts_dev.csv")),
         "fama_macbeth_dev": _tab(pd.read_csv(T / "fama_macbeth_dev.csv")),
         "vol_prediction_dev": _tab(pd.read_csv(T / "vol_prediction_dev.csv")),
+        "interaction_fm_dev": _tab(pd.read_csv(T / "interaction_fm_dev.csv")),
+        "fm_forecast": _tab(res["fm_forecast"]),
+        "diagnostics_dev": _tab(pd.read_csv(T / "ml_diagnostics_dev.csv")),
         **({"ladder_final": _tab(pd.read_csv(T / "ml_summary_final_h1.csv"))}
            if (T / "ml_summary_final_h1.csv").exists() else {}),
     })

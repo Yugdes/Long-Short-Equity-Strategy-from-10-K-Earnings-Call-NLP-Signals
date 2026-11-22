@@ -10,7 +10,7 @@
 | 1 Research grounding | ✅ done 2026-11-22 | LITERATURE.md (16 verified works), RESEARCH_DESIGN.md (H1–H5, primary spec, hurdles) |
 | 2 Point-in-time panel | ✅ done 2026-11-22 | data/processed/panel.parquet (308,283 rows; 222k primary stock-months); 32 tests pass incl. no-look-ahead invariants on the real panel |
 | 3 Features | ✅ code done (src/features/signals.py, tests) | ~90 rank features in 4 groups |
-| 4 Models | ⏳ | |
+| 4 Models | ✅ dev ladder done (results/tables/ml_summary_dev_h1.csv); h=3 + alt-lag robustness running | |
 | 5 Backtest | ⏳ | |
 | 6 Robustness / SHAP | ⏳ | |
 | 7 Website | ⏳ | |
@@ -30,9 +30,21 @@
 - Sanity: our momentum decile L/S vs French UMD corr 0.79; size L/S vs SMB corr 0.81 (2010–2021).
 - Market-cap fixes D-021, capped VW D-022.
 
+## Phase 4 numbers (dev window, 2010–2021 for sorts / FM)
+- 42 single-signal decile sorts (EW+VW): **none clears |t| ≥ 3**. Best: Δ marketing excellence YoY VW α t = 2.91; non-op risk level EW L/S t = 2.69 (high risk earns *more*: risk-premium reading).
+- H2 (risk increases → lower returns): null (|t| < 1.8 everywhere).
+- H4 interaction FM: null (max t = 0.82).
+- H1(a) volatility: risk text predicts next-12m volatility after controls: legal t = 5.7, marketing 3.3, technology 2.7 (higher vol); accounting −11.8, management −5.8, finance −3.7 (lower vol).
+
+## ML ladder (dev OOS 2014–2021, 96 months)
+- Every model has rank IC 0.030–0.048 with NW t > 3 (controls-only LGBM 0.039; ALL LGBM 0.048; ens ALL 0.0446 vs ens C 0.0409).
+- Risk text adds ~0 IC over controls; marketing-call language adds ~+0.01 (D-026: not the coverage flag).
+- **No decile L/S has a significant FF5+Mom alpha** (VW |t| ≤ 1.1; EW ≤ 1.6). Primary (ens ALL VW d10) gross Sharpe 0.08, α −3.3%/yr (t −0.59).
+- FM of returns on the forecast rank with controls: t ≈ 2.5–2.7 (below the hurdle).
+
 ## Next steps
-1. Phase 4: single-signal decile sorts + Fama-MacBeth (dev window, spec log), then walk-forward ML ladder.
-2. Phase 5 tear sheet.
+1. When `src.models.run_ml` (h=1) finishes: run h=3 (`python -m src.models.run_ml --horizon 3`), then `python run_all.py --only analysis`, `--only export`, build the site, check with Playwright.
+2. Then freeze the design → log the unlock in DECISIONS → set config test.unlocked=true → `python -m src.models.run_ml --final` → analysis/export again.
 
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.

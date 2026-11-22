@@ -50,10 +50,11 @@ def stage_tests(force):
 
 def stage_single(force):
     import pandas as pd
-    from src.evaluation.single_signals import run_single_signals, run_fama_macbeth, run_vol_prediction
+    from src.evaluation.single_signals import (run_single_signals, run_fama_macbeth, run_vol_prediction,
+                                               run_interaction_fm)
     from src.utils.config import path
     f = pd.read_parquet(path("processed") / "features.parquet")
-    run_single_signals(f), run_fama_macbeth(f), run_vol_prediction(f)
+    run_single_signals(f), run_fama_macbeth(f), run_vol_prediction(f), run_interaction_fm(f)
 
 
 def stage_ml(force):
