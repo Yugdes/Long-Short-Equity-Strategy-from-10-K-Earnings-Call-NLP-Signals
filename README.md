@@ -21,9 +21,9 @@ The pipeline builds a monthly stock panel in which every number is public before
 | Turnover and breadth | buys plus sells in both legs equal 214% of one leg's capital per month (about 54% one-way per leg); 116 names per leg |
 | Multiple testing | deflated Sharpe probability 0.11 over 99 development specs; probability of backtest overfitting 0.88 |
 | Placebo and shuffled labels | IC p = 0.000, Sharpe p = 0.042; shuffled-label IC 0.0073 |
-| Risk text predicts volatility | 5 of 8 risk factors predict next-year volatility with a t-statistic of 3 or more in size after controls (2 higher, 3 lower) |
+| Disclosed risk and future volatility | pre-registered test fails: operations risk t = 0.1, aggregate risk t = −1.0 (predicted positive); exploratory: 5 of 8 individual factors have t-statistics of 3 or more in size after controls (2 higher, 3 lower) |
 
-**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant alpha after standard factors and costs. The text adds little beyond known characteristics, while disclosed risk does predict future volatility.
+**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant alpha after standard factors and costs, and the text adds little beyond a controls-only model. Individual disclosed risk factors do carry information about future volatility, though not in the pre-registered form.
 <!-- /HEADLINE-RESULTS -->
 
 ## How to run

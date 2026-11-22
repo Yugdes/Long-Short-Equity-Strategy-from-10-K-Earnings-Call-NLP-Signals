@@ -9,7 +9,11 @@
   "2021-12"
  ],
  "n_filings": 131920,
+ "n_filings_scored": 122600,
  "n_firms_scores": 16959,
+ "n_features_all": 83,
+ "test_months": 41,
+ "dev_months": 96,
  "n_stock_months": 205574,
  "n_firms_panel": 2247,
  "median_names_per_month": 1118.0,

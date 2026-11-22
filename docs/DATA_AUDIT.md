@@ -62,7 +62,7 @@ Joining on (CIK, filing date) to the cached EDGAR `form.idx` files matched **131
 Means of the probabilities: accounting 0.160, finance 0.285, international 0.053, legal 0.200, management 0.063, marketing 0.047, **operations 0.177**, technology 0.051. These match Paper 1 Table 4, Panel A to three decimals. The binary classifications are degenerate (means 0.0000–0.14; international is never 1), so they are ignored.
 
 ### 2.6 Early validity flags (expanded in Phase 1 diagnostics)
-- Probability vs. dictionary-count correlation (Pearson / Spearman): operations 0.14 / 0.38, finance 0.55 / 0.71, technology 0.18 / 0.52. The transformer probability is **only loosely related** to the dictionary count it was trained to imitate.
+- Probability vs. dictionary-count correlation (Pearson / Spearman) on **all rows, including empty sections coded as zero**: operations 0.14 / 0.38, finance 0.55 / 0.71, technology 0.18 / 0.52. *Correction (2026-11-22):* the zeros inflate these. On sections of at least 1,000 words, the operations rank correlation is −0.07 (`results/json/explorer.json`, `text_diag`). The transformer probability is **only loosely related** to the dictionary count it was trained to imitate.
 - Among filings with at least 1,000 words, operations probability is **negatively** rank-correlated with Item 1A length (ρ = −0.38). The probability behaves like a *share* or *density* of risk language, not an amount.
 - Cross-factor correlations of the probabilities reach 0.54 (operations vs. international). The 8 dimensions are far from orthogonal.
 

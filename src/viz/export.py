@@ -215,7 +215,10 @@ def export_json():
     summary = {
         "unlocked": is_unlocked(), "test_window": [cfg["test"]["start"], cfg["sample"]["end"]],
         "dev_window": ["2014-01", "2021-12"],
-        "n_filings": int(len(risk)), "n_firms_scores": int(risk["cik"].nunique()),
+        "n_filings": int(len(risk)), "n_filings_scored": int((risk["words"] > 0).sum()),
+        "n_firms_scores": int(risk["cik"].nunique()), "n_features_all": len(SETS["ALL"]),
+        "test_months": int(feat.loc[feat["month"] >= pd.Period(cfg["test"]["start"], "M"), "month"].nunique()),
+        "dev_months": int(dev_only(feat).loc[lambda x: x["month"] >= pd.Period("2014-01", "M"), "month"].nunique()),
         "n_stock_months": int(len(feat)), "n_firms_panel": int(feat["cik"].nunique()),
         "median_names_per_month": float(feat.groupby("month").size().median()),
         "primary": {"label": "Ensemble, all features, value-weighted top-minus-bottom decile, net of 25 bps",
@@ -270,6 +273,10 @@ def export_json():
         "filings_by_year": [int(v) for v in r.groupby("file_year").size().values],
         "coverage": _tab(pd.read_csv(T / "coverage_funnel.csv")),
         "corr_constructs": _tab(mk[list(CONSTRUCTS)].corr().round(3).reset_index()),
+        # text diagnostics on sections of >= 1,000 words (the length screen used for the diagnostics, DATA_AUDIT §2.6)
+        "text_diag": {"sample": "Item 1A sections of at least 1,000 words",
+                      "ops_prob_count_spearman": round(float(risk.loc[risk["words"] >= 1000, "operations_prob"].corr(risk.loc[risk["words"] >= 1000, "operations_cnt"], method="spearman")), 3),
+                      "ops_prob_words_spearman": round(float(risk.loc[risk["words"] >= 1000, "operations_prob"].corr(risk.loc[risk["words"] >= 1000, "words"], method="spearman")), 3)},
     })
 
     # --- results ---
@@ -335,6 +342,8 @@ def write_readme_headline():
     up = sum(r["t_nw"] >= 3 for r in vol)
     down = sum(r["t_nw"] <= -3 for r in vol)
     inc = sm["ic_increment"]["ens"]
+    tv = {r["signal"]: r["t_nw"] for r in mo["vol_prediction_dev"] if r["spec"] == "with_controls"}
+    ops_t, agg_t = tv.get("r_operations_prob"), tv.get("r_risk_all")
     ta = p.get("test_net_alpha_ann")
     rows = [
         ("Sample", f"{sm['n_firms_panel']:,} firms, {sm['n_stock_months']:,} stock-months, "
@@ -355,14 +364,15 @@ def write_readme_headline():
                              f"probability of backtest overfitting {f(sm['pbo']['pbo'])}"),
         ("Placebo and shuffled labels", f"IC p = {f(sm['placebo']['p_value_ic'], 3)}, Sharpe p = {f(sm['placebo']['p_value_sharpe'], 3)}; "
                                         f"shuffled-label IC {f(sm['shuffled_label']['ic_mean'], 4)}"),
-        ("Risk text predicts volatility", f"{up + down} of 8 risk factors predict next-year volatility with a t-statistic of 3 or more in size after controls "
-                                          f"({up} higher, {down} lower)"),
+        ("Disclosed risk and future volatility", f"pre-registered test fails: operations risk t = {f(ops_t, 1)}, aggregate risk t = {f(agg_t, 1)} "
+                                                 f"(predicted positive); exploratory: {up + down} of 8 individual factors have t-statistics of 3 or more "
+                                                 f"in size after controls ({up} higher, {down} lower)"),
     ]
     lines = ["**Headline results** (generated from `results/json` by `src/viz/export.py`):", "", "| Measure | Result |", "|---|---|"]
     lines += [f"| {a} | {b} |" for a, b in rows]
     lines += ["", "**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant "
-                  "alpha after standard factors and costs. The text adds little beyond known characteristics, while disclosed risk "
-                  "does predict future volatility.", ""]
+                  "alpha after standard factors and costs, and the text adds little beyond a controls-only model. Individual disclosed "
+                  "risk factors do carry information about future volatility, though not in the pre-registered form.", ""]
     block = "\n".join(lines)
     readme = path("results").parent / "README.md"
     txt = readme.read_text(encoding="utf-8")

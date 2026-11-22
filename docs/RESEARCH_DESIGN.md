@@ -75,3 +75,9 @@ Every portfolio or model specification evaluated on the dev window is appended t
 - Market cap and book equity come from XBRL and start ~2009–2011.
 - Yahoo data is unofficial and occasionally revised; the downloads are frozen in `data/raw/yahoo/`.
 - The risk scores come from transformers trained on synthetic, dictionary-labelled sentences, with no human validation on real 10-Ks. The marketing scores are cosine similarities with near-collinear constructs.
+
+---
+## Erratum (2026-11-22, after the design freeze; see DECISIONS D-029/D-030)
+- The locked test window ends **2025-05**, not 2025-06. In 2025-06 the universe halves because FY2024 10-Ks are absent from the dataset (D-029).
+- The prob–count and prob–length figures in §1.1 were computed on all rows, including empty Item 1A sections coded as zero. On sections of at least 1,000 words, the operations probability's rank correlation is −0.07 with its dictionary count and −0.38 with length (`results/json/explorer.json`, `text_diag`).
+- The body of this document is left as written before results, as the pre-registration.

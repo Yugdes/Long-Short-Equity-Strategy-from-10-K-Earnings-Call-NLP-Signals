@@ -101,8 +101,8 @@ export function Ladder() {
   const note = "IC = monthly Spearman correlation of prediction with next-month return rank; R² against a zero forecast of the centred rank; long-short = capped value-weighted top minus bottom decile, gross.";
   return (
     <>
-      <LadderTable rows={m.ladder_dev} caption={`Out-of-sample model ladder, development window 2014–2021 (96 months). ${note}`} />
-      {m.ladder_final && <LadderTable rows={m.ladder_final} caption="The frozen models on the locked test window (from 2022-01), run once after the design was frozen." />}
+      <LadderTable rows={m.ladder_dev} caption={`Out-of-sample model ladder, development window 2014–2021 (${m.ladder_dev[0]?.n_months ?? "–"} months). ${note}`} />
+      {m.ladder_final && <LadderTable rows={m.ladder_final} caption={`The frozen models on the locked test window (from 2022-01, ${m.ladder_final[0]?.n_months ?? "–"} months), run once after the design was frozen.`} />}
     </>
   );
 }
@@ -188,7 +188,7 @@ export function Results() {
             data={[{ type: "bar", x: s.decile_bars[bars].map((_, i) => `P${i + 1}`), y: s.decile_bars[bars], marker: { color: teal },
               hovertemplate: "%{x}: %{y:.1%} a year<extra></extra>" }]}
             layout={{ margin: { l: 52, r: 8, t: 8, b: 32 }, yaxis: { tickformat: ".0%" } }} />
-          <figcaption><b>Returns by forecast portfolio</b> (P1 = lowest forecast), annualised, gross. A useful forecast rises from left to right.</figcaption>
+          <figcaption><b>Returns by forecast portfolio</b> (P1 = lowest forecast), annualised, gross, development window 2014–2021. A useful forecast rises from left to right.</figcaption>
         </figure>
       </div>
       <figure>
@@ -203,7 +203,7 @@ export function Results() {
       <h3>Model ladder</h3>
       <Ladder />
       <h3>Strategy variants</h3>
-      <VariantTable rows={s.variants} caption="Development window, 2014–2021. All construction variants over the same months. Turnover is buys plus sells in both legs as a share of one leg's capital per month (divide by four for one-way turnover per leg); break-even is the one-way cost that would erase the gross return." />
+      <VariantTable rows={s.variants} caption="Development window, 2014–2021. All construction variants over the same months. Return, risk and α columns are gross of costs; α t is from FF5 + momentum, and the next column adds a low-volatility factor built in this sample. Turnover is buys plus sells in both legs as a share of one leg's capital per month (divide by four for one-way turnover per leg); break-even is the one-way cost that would erase the gross return." />
       {s.variants_test && <VariantTable rows={s.variants_test} caption={`Locked test window, ${s.test_start} to ${s.test_end}, run once after the design was frozen.`} />}
       <p className="small prose">Net columns are Sharpe ratios after the stated one-way cost on every dollar traded.</p>
       <h3>Factor alphas and legs</h3>

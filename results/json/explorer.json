@@ -699,5 +699,10 @@
    "mkt_capab": 0.894,
    "mkt_excel": 1.0
   }
- ]
+ ],
+ "text_diag": {
+  "sample": "Item 1A sections of at least 1,000 words",
+  "ops_prob_count_spearman": -0.07,
+  "ops_prob_words_spearman": -0.382
+ }
 }

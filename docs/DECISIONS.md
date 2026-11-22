@@ -161,3 +161,16 @@ No result from 2022-01 → 2025-06 has been computed or viewed before this entry
 8. *Tear sheet.* Dev and test statistics come from one continuous portfolio history (no artificial rebuild cost at 2022-01).
 9. *ZCA look-ahead suspicion.* The authors' ZCA whitening was likely fit on the full 2003–2025 sample. Robustness: LGBM with the 19 *raw* components in place of the ZCA ones (`C+R+Mraw`, logged).
 10. *Weight cap uses the current exchange (NYSE).* Kept, and noted in Limitations.
+
+**D-030 — 2026-11-22 — Second independent review (site and docs vs code) and errata.** All JSON copies and exported tables matched their CSVs, and the spec count matched the DSR trial count. The fixes were in prose and verdict logic:
+- Numbers in site prose are now read from `results/json`: coverage share, prob–count correlations (with their sample named), scored-filing count (122,600 non-empty sections, not 131,920 rows), feature count (83), test-window length, construct correlations.
+- *H1 verdict.* It now leads with the pre-registered volatility test (operations risk and aggregate risk with controls: t = 0.10 and −1.04, so **not** supported). The 8-factor volatility count is labelled exploratory. The no-alpha part holds, so the tag is "Partly supported".
+- *Verdict tiers.* Only the |t| ≥ 3 hurdle is pre-registered; the 2–3 tier is now labelled "Below hurdle" (H3: t = 2.84, the best of 10 statistics).
+- *Hero verdict.* It requires a positive t ≥ 3 for any "partly" claim and now says the text "adds little beyond a controls-only model". The exported `fm_forecast` shows the ensemble forecast keeps FM t ≈ 3.3 after controls, but the paired IC gain over the controls-only model is t = 1.6.
+- *Labels.* Gross/net and window labels added; SHAP model described as the 2022-fold model (trained to 2021-11); DSR stated to use the gross series; "survived to late 2026" (download date), not 2025.
+- *Errata for superseded figures* (pre-D-028 data and the raw-mean ensemble):
+  - D-026's ICs (C 0.039, C+flag 0.041, C+M 0.0508) are now C 0.032, C+flag 0.035, C+M_noflag 0.042, C+M 0.042.
+  - D-027's "VW decile gross Sharpe 0.08 vs EW 0.46" is now 0.25 vs 0.70.
+  - The conclusions of both entries are unchanged.
+
+Current values: `results/tables/ml_summary_dev_h1.csv`, `ml_diagnostics_dev.csv`, `results/json/strategy.json`.

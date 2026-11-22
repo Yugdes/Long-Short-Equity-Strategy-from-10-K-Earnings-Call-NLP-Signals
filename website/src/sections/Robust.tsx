@@ -95,8 +95,9 @@ export function Robustness() {
         </figure>
         <div className="prose">
           <h3>Multiple testing</h3>
-          <p>{r.spec_count} strategy and model specifications were evaluated on the development window and every one is in the
-            log. Correcting the primary Sharpe ratio for that many trials gives a deflated Sharpe probability of{" "}
+          <p>{r.spec_count} portfolio and model specifications were evaluated on the development window, and every one is logged
+            (cross-sectional regressions and diagnostic sorts are not counted as trials). Correcting the primary strategy's gross Sharpe
+            ratio for that many trials gives a deflated Sharpe probability of{" "}
             <strong>{fx(s.dsr.dsr, 2)}</strong> (0.95 would be convincing). Across {s.pbo.n_strategies} model and feature-set
             combinations, the probability that the in-sample winner underperforms the median out of sample is{" "}
             <strong>{fx(s.pbo.pbo, 2)}</strong> ({s.pbo.n_splits} combinatorial splits; below 0.5 is the goal).</p>
@@ -135,8 +136,9 @@ export function Explain() {
   const totals = Object.entries(sh.groups); const sum = totals.reduce((a, [, v]) => a + v, 0);
   return (
     <Section id="explain" title="What the model uses">
-      <div className="prose"><p>SHAP values for the frozen LightGBM model that makes the first out-of-sample forecast, explained on
-        50,000 training stock-months. Bars are mean absolute contributions to the predicted rank.</p></div>
+      <div className="prose"><p>SHAP values for the frozen LightGBM model (all features) that makes the first forecast of the locked test
+        window: tuned and trained on data up to November 2021, explained on 50,000 of its training stock-months. Bars are mean absolute
+        contributions to the predicted rank.</p></div>
       <div className="cols-2">
         <figure>
           <Plot label="Top 15 features by mean absolute SHAP value" height={440}

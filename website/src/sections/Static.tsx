@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 import { Ledger } from "./Ledger";
+import { fx, num, useData } from "../lib";
+
+type Sum = { test_months: number; test_window: [string, string]; n_filings_scored: number; n_features_all: number };
+type Exp = { coverage: Record<string, number>[]; corr_constructs: Record<string, number | string>[];
+  text_diag: { sample: string; ops_prob_count_spearman: number; ops_prob_words_spearman: number } };
 
 export function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -31,11 +36,12 @@ export function Motivation() {
 }
 
 export function Design() {
+  const sm = useData<Sum>("summary");
   return (
     <Section id="design" title="Research design and hypotheses">
       <div className="prose">
         <p>The hypotheses, the primary strategy and the significance hurdle were written down before any return was
-          examined. The final 41 months (January 2022 to May 2025) were locked until the design was frozen.</p>
+          examined. The final {sm ? `${sm.test_months} months (${sm.test_window[0]} to ${sm.test_window[1]})` : "months"} were locked until the design was frozen.</p>
       </div>
       <Ledger />
     </Section>
@@ -43,6 +49,7 @@ export function Design() {
 }
 
 export function Pipeline() {
+  const sm = useData<Sum>("summary");
   const box = (x: number, y: number, w: number, t: string, s: string, key = false) => (
     <g className={key ? "key" : ""}>
       <rect x={x} y={y} width={w} height={58} rx={6} />
@@ -58,12 +65,12 @@ export function Pipeline() {
       </div>
       <figure>
         <svg className="pipeline" viewBox="0 0 1000 300" role="img" aria-label="Pipeline diagram: four data sources feed a point-in-time panel, then features, walk-forward models and portfolios">
-          {box(0, 10, 210, "10-K risk scores", "8 factors, 131,920 filings")}
+          {box(0, 10, 210, "10-K risk scores", sm ? `8 factors, ${num(sm.n_filings_scored)} filings` : "8 factors per filing")}
           {box(0, 84, 210, "Earnings-call scores", "19 components, calendar quarters")}
           {box(0, 158, 210, "Prices (Yahoo)", "daily, splits, dividends")}
           {box(0, 232, 210, "SEC XBRL + French", "shares, book equity, factors")}
           {box(280, 121, 200, "Point-in-time panel", "release date + lag, caps", true)}
-          {box(540, 121, 190, "Monthly ranks", "~90 features, 4 groups")}
+          {box(540, 121, 190, "Monthly ranks", sm ? `${sm.n_features_all} features, 4 groups` : "features, 4 groups")}
           {box(790, 60, 210, "Walk-forward models", "refit yearly, tuned in-window", true)}
           {box(790, 182, 210, "Decile portfolios", "costs, factor alphas")}
           {[39, 113, 187, 261].map((y) => <path key={y} d={`M210 ${y} C245 ${y} 245 150 280 150`} />)}
@@ -94,15 +101,22 @@ export function Validation() {
 }
 
 export function Limitations() {
+  const sm = useData<Sum>("summary");
+  const ex = useData<Exp>("explorer");
+  const cov = (ex?.coverage ?? []).filter((r) => (r.file_year as number) >= 2010 && (r.file_year as number) <= 2024).map((r) => r.pct_primary_of_filings as number);
+  const pairs = (ex?.corr_constructs ?? []).flatMap((r) => Object.entries(r).filter(([k, v]) => k !== "index" && k > String(r.index) && typeof v === "number").map(([, v]) => v as number));
+  const rng = (a: number[], d: number, pc = false) => a.length ? `${pc ? Math.round(Math.min(...a) * 100) + "%" : fx(Math.min(...a), d)} to ${pc ? Math.round(Math.max(...a) * 100) + "%" : fx(Math.max(...a), d)}` : "–";
+  const td = ex?.text_diag;
   return (
     <Section id="limitations" title="Limitations">
       <div className="prose">
         <p><strong>Survivorship, and it changes over time.</strong> Prices come from Yahoo Finance, which only serves firms
-          that still have a ticker today. Every stock in the sample therefore survived to late 2025: a stock in the 2014
-          cross-section had to survive about eleven more years to be included, a stock in the 2023 cross-section only about two.
+          that still had a ticker when the data were downloaded in November 2026. Every stock in the sample therefore survived to late
+          2026: a stock in the 2014 cross-section had to survive about twelve more years to be included, a stock in the 2023 cross-section
+          only about three.
           Firms that later failed are missing mostly from the early years, so the development window's losers look better than
           they really were, and the bias weakens toward the test window. Development and test results are therefore not directly
-          comparable, and the strategy's short leg is the part most affected. Only 12% to 33% of each year's scored filings reach
+          comparable, and the strategy's short leg is the part most affected. Only {rng(cov, 0, true)} of each year's filings (2010–2024) reach
           the primary universe. A survivorship-free source (CRSP with delisting returns) is the real fix.</p>
         <p><strong>Free fundamentals.</strong> Market capitalisation and book equity come from XBRL filings, which begin in
           2009 to 2011. Size and value controls and value weights are unavailable earlier, which is why the primary sample starts
@@ -112,11 +126,12 @@ export function Limitations() {
           weights are today's, applied backwards.</p>
         <p><strong>The scores themselves.</strong> The risk transformers were trained on 761 synthetic sentences labelled by
           the same dictionaries they were meant to improve on, with no human-labelled check on real filings. Their probabilities
-          correlate only 0.14 with the dictionary counts for operations risk and fall as Item 1A gets longer. The three marketing
-          constructs correlate 0.89 to 0.97 with one another, so they behave like one dimension. The decorrelated (ZCA) components
+          barely track the dictionary counts they imitate: among {td?.sample.toLowerCase() ?? "longer sections"}, the operations probability's rank
+          correlation with its own dictionary count is {fx(td?.ops_prob_count_spearman, 2)}, and with section length {fx(td?.ops_prob_words_spearman, 2)} (it
+          behaves like a share of risk language, not an amount). The three marketing constructs correlate {rng(pairs, 2)} with one another, so they behave like one dimension. The decorrelated (ZCA) components
           supplied by the authors were most likely whitened on the full 2003–2025 sample, a mild look-ahead; a robustness run
           with the raw components instead is reported.</p>
-        <p><strong>Short horizon of the test.</strong> The locked window is 41 months, too short to separate a modest edge
+        <p><strong>Short horizon of the test.</strong> The locked window is {sm?.test_months ?? "–"} months, too short to separate a modest edge
           from luck on its own; it is a check on the development results, not a verdict by itself.</p>
         <p><strong>Not investment advice.</strong> Results are historical, gross of borrowing costs and market impact beyond
           the stated commissions, and for research and teaching only.</p>

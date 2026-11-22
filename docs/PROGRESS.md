@@ -14,7 +14,7 @@
 | 5 Backtest | ✅ | results/json/strategy.json (dev + test tear sheets) |
 | 6 Robustness / SHAP | ✅ | subperiods, size, industries, alt lags, h=3, placebo, shuffled labels, DSR, PBO, SHAP, low-vol factor |
 | 7 Website | ✅ | website/ (npm run dev / build); Playwright: desktop 1440 + mobile 390 + dark, no console errors |
-| 8 Final QA | 🔄 | clean `run_all.py --from panel` succeeded end to end; leakage review done (D-029); numbers review running |
+| 8 Final QA | ✅ | clean `run_all.py --from panel` end to end; 38 tests pass; leakage review (D-029) and site/docs-vs-code review (D-030) applied; README headline generated from JSON |
 
 ## Key numbers so far
 - Risk scores: 131,920 filings, 16,959 CIKs, filed 2005-01 → 2025-01. `FYEAR` = filing year (100%). Filing dates match an original 10-K in EDGAR for 131,917/131,920.
@@ -51,10 +51,12 @@
 ## Final numbers (definitive run)
 See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), test IC 0.060 (t 4.5; controls-only 0.064). Primary net Sharpe −0.12 dev / 0.51 test; net FF5+Mom α t −0.85 / −0.83. DSR 0.11 (99 specs), PBO 0.88. Verdict: prediction yes, alpha no; text adds little beyond known characteristics; risk text predicts volatility (5/8 factors, both signs).
 
-## Next steps
-1. Apply findings of the site-vs-code numbers reviewer.
-2. Final commit; delete `MS 499/.playwright-mcp` (Playwright tool's log folder, created outside the project).
-3. Final summary to the user.
+## Next steps (open items for the user)
+1. The final report has not been written; the brief says to wait to be asked.
+2. Fill in the website footer names (placeholders, per the brief).
+3. Push to GitHub yourself (nothing has been pushed; the `origin` remote was left untouched).
+4. Optional upgrade: a CRSP/Compustat extract would remove the survivorship bias (see Limitations).
 
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.
+- 2026-11-22: Phases 1–8 complete. Test unlocked (D-027); split look-ahead bug found and fixed (D-028); two independent reviews applied (D-029, D-030); definitive clean rerun.
