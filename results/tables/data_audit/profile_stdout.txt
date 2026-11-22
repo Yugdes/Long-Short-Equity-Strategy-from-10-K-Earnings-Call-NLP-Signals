@@ -1,0 +1,235 @@
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+D:\Desktop\MS 499\Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals\scripts\profile_raw_data.py:110: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  with_returns=("has_returns", lambda s: s.fillna(False).astype(bool).sum()))
+{
+  "risk": {
+    "rows": 131920,
+    "firms": 16959,
+    "fyear_range": [
+      2005,
+      2025
+    ],
+    "filing_date_range": [
+      "2005-01-03",
+      "2025-01-07"
+    ],
+    "filing_date_missing": 0,
+    "dup_cik_fyear": 0,
+    "filing_year_minus_fyear": {
+      "0": 131920
+    },
+    "word_count_zero": 9320,
+    "word_count_lt1000": 23655,
+    "optional_share": 0.09788508186779867,
+    "columns": [
+      "CIK",
+      "FYEAR",
+      "Item 1A Word Count",
+      "Filing Date",
+      "Item 1A Optional",
+      "Accounting  ",
+      "Accounting  Probability",
+      "Accounting  Classification",
+      "Finance ",
+      "Finance  Probability",
+      "Finance  Classification",
+      "International ",
+      "International  Probability",
+      "International  Classification",
+      "Legal ",
+      "Legal Probability",
+      "Legal Classification",
+      "Management",
+      "Management Probability",
+      "Management Classification",
+      "Marketing",
+      "Marketing Probability",
+      "Marketing Classification",
+      "Operations",
+      "Operations Probability",
+      "Operations Classification",
+      "Technology",
+      "Technology Probability",
+      "Technology Classification",
+      "filing_year"
+    ]
+  },
+  "marketing_exec": {
+    "rows": 337599,
+    "firms": 11296,
+    "year_range": [
+      2003,
+      2025
+    ],
+    "dup_gvkey_yq": 0,
+    "multi_gvkey_rows": 1158,
+    "quarters": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "doc_len_zero": 0,
+    "n_columns": 42
+  },
+  "marketing_analyst": {
+    "rows": 254338,
+    "firms": 9258,
+    "dup_gvkey_yq": 0
+  },
+  "cik_gvkey": {
+    "rows": 1003087,
+    "rows_with_gvkey": 136580,
+    "unique_cik_with_gvkey": 41364,
+    "unique_gvkey": 38575,
+    "gvkeys_with_multiple_ciks": 5082,
+    "ciks_with_multiple_gvkeys": 2328,
+    "source_counts": {
+      "No Link": 866507,
+      "CRSP/Compustat Merged": 44549,
+      "Capital IQ": 43915,
+      "Compustat Company": 31340,
+      "Compustat Security": 16776
+    }
+  },
+  "overlap": {
+    "risk_ciks_in_link": 14476,
+    "risk_ciks_linked_to_marketing_gvkey": 5183,
+    "marketing_gvkeys_linked_to_risk_cik": 5013
+  },
+  "sec_tickers": {
+    "rows": 8016,
+    "risk_ciks_with_current_ticker": 4600
+  },
+  "returns_existing": {
+    "rows": 1148411,
+    "tickers": 7607,
+    "month_range": [
+      "2004-02",
+      "2026-10"
+    ],
+    "firm_years_with_returns": 55490,
+    "pct_firm_years_with_returns": 0.4206337174044876
+  }
+}
+          n  firms  optional  words_med  words_lt1000  ops_prob_mean
+FYEAR                                                               
+2005   5815   5815     0.003        0.0         0.943          0.009
+2006   5748   5748     0.013     5298.0         0.125          0.192
+2007   5741   5741     0.010     6632.0         0.075          0.199
+2008   6321   6321     0.029     6825.0         0.108          0.186
+2009   7917   7917     0.075     5544.0         0.187          0.166
+2010   7857   7857     0.091     5887.0         0.188          0.169
+2011   7922   7922     0.116     6324.5         0.191          0.177
+2012   7709   7709     0.126     6907.0         0.190          0.178
+2013   7310   7310     0.133     7772.0         0.179          0.181
+2014   7193   7193     0.134     8591.0         0.169          0.185
+2015   7034   7034     0.130     9636.0         0.162          0.186
+2016   6574   6574     0.121    10551.0         0.148          0.187
+2017   6256   6256     0.125    11194.0         0.145          0.186
+2018   6046   6046     0.125    12245.5         0.136          0.188
+2019   5896   5896     0.125    13291.5         0.135          0.188
+2020   5691   5691     0.118    15166.0         0.121          0.192
+2021   6053   6053     0.115    17810.0         0.116          0.192
+2022   6710   6710     0.114    21263.0         0.104          0.190
+2023   6306   6306     0.115    20736.0         0.100          0.193
+2024   5818   5818     0.104    21015.5         0.090          0.196
+2025      3      3     0.667       33.0         0.667          0.052
+                               count       mean        std  min       25%       50%        75%         max
+Accounting  Probability     131920.0      0.160      0.149  0.0     0.068     0.120      0.215       0.978
+Finance  Probability        131920.0      0.285      0.193  0.0     0.143     0.284      0.418       0.933
+International  Probability  131920.0      0.053      0.043  0.0     0.024     0.047      0.074       0.487
+Legal Probability           131920.0      0.200      0.125  0.0     0.115     0.187      0.279       0.982
+Management Probability      131920.0      0.063      0.046  0.0     0.034     0.063      0.087       0.920
+Marketing Probability       131920.0      0.047      0.044  0.0     0.019     0.037      0.064       0.695
+Operations Probability      131920.0      0.177      0.129  0.0     0.089     0.163      0.258       0.871
+Technology Probability      131920.0      0.051      0.051  0.0     0.018     0.038      0.068       0.988
+Item 1A Word Count          131920.0  17651.214  21871.033  0.0  2899.000  9317.000  25014.250  505360.000
+Item 1A Optional            131920.0      0.098      0.297  0.0     0.000     0.000      0.000       1.000
+          n  firms  doc_len_med
+year                           
+2003    882    776       2607.0
+2004   4226   1418       2703.0
+2005   5578   1685       2816.5
+2006   6766   2035       2751.0
+2007   7742   2209       2762.0
+2008   8426   2321       2851.0
+2009   8653   2407       3033.0
+2010   9880   2889       3141.0
+2011  10701   3076       3087.0
+2012  10948   3179       3139.0
+2013  11783   3459       3051.0
+2014  12712   3825       2884.0
+2015  14165   4335       2816.0
+2016  15145   4654       2741.0
+2017  16871   5162       2659.0
+2018  18377   5654       2676.0
+2019  20060   6247       2720.0
+2020  21890   6926       3047.0
+2021  23516   7679       2967.0
+2022  25182   7921       2889.5
+2023  29431   9070       3088.0
+2024  27864   8598       3058.0
+2025  26801   8220       3043.0
+       firm_years  with_ticker  with_returns  pct_with_returns
+FYEAR                                                         
+2005         5815         1522          1515            0.2605
+2006         5748         1593          1585            0.2757
+2007         5741         1672          1663            0.2897
+2008         6321         1840          1831            0.2897
+2009         7917         2175          2162            0.2731
+2010         7857         2230          2215            0.2819
+2011         7922         2323          2309            0.2915
+2012         7709         2385          2371            0.3076
+2013         7310         2453          2439            0.3337
+2014         7193         2612          2600            0.3615
+2015         7034         2757          2742            0.3898
+2016         6574         2858          2841            0.4322
+2017         6256         2976          2957            0.4727
+2018         6046         3130          3111            0.5146
+2019         5896         3269          3247            0.5507
+2020         5691         3423          3400            0.5974
+2021         6053         3738          3710            0.6129
+2022         6710         4162          4127            0.6151
+2023         6306         4307          4269            0.6770
+2024         5818         4447          4395            0.7554
+2025            3            1             1            0.3333

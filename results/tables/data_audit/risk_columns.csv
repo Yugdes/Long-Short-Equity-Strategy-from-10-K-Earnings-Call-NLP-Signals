@@ -1,0 +1,30 @@
+,dtype,n_missing,pct_missing
+CIK,int64,0,0.0
+FYEAR,int64,0,0.0
+Item 1A Word Count,int64,0,0.0
+Filing Date,int64,0,0.0
+Item 1A Optional,int64,0,0.0
+Accounting  ,int64,0,0.0
+Accounting  Probability,float64,0,0.0
+Accounting  Classification,int64,0,0.0
+Finance ,int64,0,0.0
+Finance  Probability,float64,0,0.0
+Finance  Classification,int64,0,0.0
+International ,int64,0,0.0
+International  Probability,float64,0,0.0
+International  Classification,int64,0,0.0
+Legal ,int64,0,0.0
+Legal Probability,float64,0,0.0
+Legal Classification,int64,0,0.0
+Management,int64,0,0.0
+Management Probability,float64,0,0.0
+Management Classification,int64,0,0.0
+Marketing,int64,0,0.0
+Marketing Probability,float64,0,0.0
+Marketing Classification,int64,0,0.0
+Operations,int64,0,0.0
+Operations Probability,float64,0,0.0
+Operations Classification,int64,0,0.0
+Technology,int64,0,0.0
+Technology Probability,float64,0,0.0
+Technology Classification,int64,0,0.0

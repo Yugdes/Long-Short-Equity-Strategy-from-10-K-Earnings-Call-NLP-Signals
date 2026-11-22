@@ -1,259 +1,132 @@
-"""
-Price & return data adapter — supports Path B (yfinance, free).
-Downloads adjusted prices, computes monthly returns, market cap, and volume.
+"""Yahoo Finance prices (free path, D-003).
 
-Path A (WRDS/CRSP) adapter is a stub — implement if institutional access is available.
+download_daily(): raw daily bars per batch of 50 tickers -> data/raw/yahoo/batch_XXXX.parquet
+                  (resumable; a finished batch is never re-downloaded, which freezes the data).
+monthly_from_daily(): one row per (ticker, month) with total return, split-adjusted close,
+                  dollar volume, Amihud illiquidity, daily-return volatility and split factors.
 """
-import pandas as pd
-import numpy as np
-import time
 from pathlib import Path
-from typing import List, Optional
+import time
 
-from src.utils.helpers import (
-    load_config, get_path, setup_logging, save_parquet, load_parquet, parquet_exists
-)
+import numpy as np
+import pandas as pd
 
-logger = setup_logging("prices")
+from src.utils.config import path
+
+START, END = "2004-12-01", "2025-12-31"
+BENCH = ["SPY"]
 
 
-# =============================================================================
-# Path B — yfinance (free)
-# =============================================================================
+def yahoo_dir() -> Path:
+    d = path("raw") / "yahoo"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
-def _download_yfinance_batch(
-    tickers: List[str],
-    start: str = "2004-01-01",
-    end: str = None,
-    batch_size: int = 50,
-) -> pd.DataFrame:
-    """
-    Download daily adjusted prices from yfinance in batches.
-    Returns: DataFrame with columns [date, ticker, adj_close, volume, close, high, low].
-    """
+
+def _to_long(df: pd.DataFrame, batch: list) -> pd.DataFrame:
+    if isinstance(df.columns, pd.MultiIndex):
+        long = df.stack(level=1, future_stack=True).rename_axis(["date", "ticker"]).reset_index()
+    else:
+        long = df.reset_index().assign(ticker=batch[0])
+    long.columns = [str(c).lower().replace(" ", "_") for c in long.columns]
+    long = long.rename(columns={"adj_close": "adj", "stock_splits": "split", "dividends": "div"})
+    keep = ["date", "ticker", "adj", "close", "volume", "div", "split"]
+    long = long[[c for c in keep if c in long.columns]].dropna(subset=["adj", "close"])
+    for c in ("adj", "close", "volume", "div", "split"):
+        if c in long:
+            long[c] = long[c].astype("float64")
+    return long
+
+
+def download_daily(tickers: list, batch_size: int = 50) -> None:
     import yfinance as yf
-
-    all_data = []
-    n_batches = (len(tickers) + batch_size - 1) // batch_size
-
-    for i in range(0, len(tickers), batch_size):
+    tickers = sorted(set(tickers))
+    pd.Series(tickers).to_csv(yahoo_dir() / "tickers_requested.csv", index=False, header=["ticker"])
+    for b, i in enumerate(range(0, len(tickers), batch_size)):
+        out = yahoo_dir() / f"batch_{b:04d}.parquet"
+        if out.exists():
+            continue
         batch = tickers[i:i + batch_size]
-        batch_num = i // batch_size + 1
-        logger.info(f"Downloading batch {batch_num}/{n_batches} ({len(batch)} tickers)...")
-
-        try:
-            df = yf.download(
-                batch,
-                start=start,
-                end=end,
-                auto_adjust=True,
-                threads=True,
-                progress=False,
-            )
-
-            if df.empty:
-                logger.warning(f"Empty data for batch {batch_num}")
-                continue
-
-            # Handle single vs multi-ticker format
-            if isinstance(df.columns, pd.MultiIndex):
-                # Multi-ticker: columns are (Price, Ticker)
-                for ticker in batch:
-                    if ticker in df.columns.get_level_values(1):
-                        ticker_data = df.xs(ticker, axis=1, level=1).copy()
-                        ticker_data["ticker"] = ticker
-                        ticker_data = ticker_data.reset_index()
-                        ticker_data.columns = ticker_data.columns.str.lower()
-                        all_data.append(ticker_data)
-            else:
-                # Single ticker
-                df = df.copy()
-                df["ticker"] = batch[0]
-                df = df.reset_index()
-                df.columns = df.columns.str.lower()
-                all_data.append(df)
-
-        except Exception as e:
-            logger.warning(f"Batch {batch_num} failed: {e}")
-
-        # Rate limiting
+        for attempt in range(4):
+            try:
+                df = yf.download(batch, start=START, end=END, auto_adjust=False, actions=True,
+                                 threads=True, progress=False)
+                break
+            except Exception as e:  # network/rate-limit errors: back off and retry
+                print(f"batch {b} error {e}; retry {attempt + 1}")
+                time.sleep(30 * (attempt + 1))
+        else:
+            continue
+        long = _to_long(df, batch) if not df.empty else pd.DataFrame()
+        long.to_parquet(out, index=False)
+        print(f"batch {b}: {len(batch)} tickers, {long['ticker'].nunique() if len(long) else 0} with data")
         time.sleep(1.0)
 
-    if not all_data:
-        return pd.DataFrame()
 
-    result = pd.concat(all_data, ignore_index=True)
-    return result
+def monthly_from_daily(daily: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate one batch of daily bars to ticker-months.
 
-
-def compute_monthly_returns(daily_prices: pd.DataFrame) -> pd.DataFrame:
+    ret       : total return from adjusted closes (dividends and splits included)
+    prc       : month-end close, split-adjusted to today's share basis (Yahoo 'Close')
+    dvol      : sum of close*volume (split effects cancel, so ~ raw dollar volume)
+    amihud    : mean(|r_d| / dollar volume_d) * 1e6
+    vol_d     : std of daily total returns within the month
     """
-    Compute monthly returns from daily adjusted prices.
+    d = daily.sort_values(["ticker", "date"]).copy()
+    d["date"] = pd.to_datetime(d["date"])
+    d["r"] = d.groupby("ticker")["adj"].pct_change()
+    d["dv"] = d["close"] * d["volume"]
+    d["month"] = d["date"].dt.to_period("M")
+    d["illiq"] = np.where(d["dv"] > 0, d["r"].abs() / d["dv"] * 1e6, np.nan)
+    g = d.groupby(["ticker", "month"])
+    m = g.agg(adj=("adj", "last"), prc=("close", "last"), dvol=("dv", "sum"), amihud=("illiq", "mean"),
+              vol_d=("r", "std"), ndays=("r", "count")).reset_index()
+    m["ret"] = m.groupby("ticker")["adj"].pct_change()
+    # a month gap (missing month) invalidates the return
+    gap = m.groupby("ticker")["month"].diff().apply(lambda x: x.n if pd.notna(x) else np.nan)
+    m.loc[gap != 1, "ret"] = np.nan
+    return m.drop(columns="adj")
 
-    Returns DataFrame: ticker, month, ret, price_end, volume_avg, mktcap_proxy
+
+def build_monthly() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """-> (prices_monthly, split events [ticker, date, ratio])."""
+    out, out_s = path("interim") / "prices_monthly.parquet", path("interim") / "splits.parquet"
+    if out.exists() and out_s.exists():
+        return pd.read_parquet(out), pd.read_parquet(out_s)
+    parts, splits = [], []
+    for f in sorted(yahoo_dir().glob("batch_*.parquet")):
+        d = pd.read_parquet(f)
+        if d.empty:
+            continue
+        parts.append(monthly_from_daily(d))
+        s = d[(d["split"] > 0) & (d["split"] != 1)][["ticker", "date", "split"]]
+        splits.append(s.rename(columns={"split": "ratio"}))
+    m = pd.concat(parts, ignore_index=True)
+    s = pd.concat(splits, ignore_index=True)
+    m.to_parquet(out, index=False)
+    s.to_parquet(out_s, index=False)
+    return m, s
+
+
+def split_adjust_shares(shares: pd.Series, asof: pd.Series, tickers: pd.Series,
+                        splits: pd.DataFrame) -> pd.Series:
+    """Put a share count reported as of `asof` on Yahoo's split-adjusted (today's) basis.
+
+    Yahoo 'Close' = raw price / (product of splits with ex-date > t). A count of N raw shares
+    as of date d therefore equals N * prod(splits with ex-date > d) shares on today's basis,
+    so mcap(t) = Close(t) * shares_adj for any t (issuance aside).
     """
-    df = daily_prices.copy()
-    df["date"] = pd.to_datetime(df["date"])
-    df["month"] = df["date"].dt.to_period("M")
-
-    # Monthly: last price, average volume
-    monthly = df.groupby(["ticker", "month"]).agg(
-        price_end=("close", "last"),
-        volume_avg=("volume", "mean"),
-        n_days=("close", "count"),
-    ).reset_index()
-
-    # Compute returns
-    monthly = monthly.sort_values(["ticker", "month"])
-    monthly["price_prev"] = monthly.groupby("ticker")["price_end"].shift(1)
-    monthly["ret"] = monthly["price_end"] / monthly["price_prev"] - 1
-
-    # Drop first month per ticker (no return)
-    monthly = monthly.dropna(subset=["ret"])
-
-    # Filter extreme returns (likely data errors)
-    monthly = monthly[monthly["ret"].between(-0.95, 10.0)]
-
-    monthly["month_start"] = monthly["month"].dt.to_timestamp()
-
-    return monthly
-
-
-def build_returns_table(
-    tickers: List[str],
-    start: str = "2004-01-01",
-    end: str = None,
-    force: bool = False,
-) -> pd.DataFrame:
-    """
-    Full pipeline: download daily prices chunk-by-chunk and compute monthly returns.
-    Caches the final monthly returns. Bypasses raw daily caching to prevent 45M row OOM.
-    """
-    cfg = load_config()
-    out_file = Path(get_path(cfg, "processed")) / "returns_monthly.parquet"
-
-    if parquet_exists(out_file) and not force:
-        logger.info(f"Loading cached returns from {out_file}")
-        return load_parquet(out_file)
-
-    logger.info(f"Downloading prices for {len(tickers)} tickers in memory-efficient chunks...")
-    
-    import yfinance as yf
-    batch_size = 50
-    all_monthly = []
-    n_batches = (len(tickers) + batch_size - 1) // batch_size
-
-    for i in range(0, len(tickers), batch_size):
-        batch = tickers[i:i + batch_size]
-        batch_num = i // batch_size + 1
-        logger.info(f"Downloading batch {batch_num}/{n_batches} ({len(batch)} tickers)...")
-
-        try:
-            df = yf.download(
-                batch,
-                start=start,
-                end=end,
-                auto_adjust=True,
-                threads=True,
-                progress=False,
-            )
-
-            if df.empty:
-                logger.warning(f"Empty data for batch {batch_num}")
-                continue
-
-            if isinstance(df.columns, pd.MultiIndex):
-                df = df.stack(level=1, future_stack=True).rename_axis(["date", "ticker"]).reset_index()
-                df.columns = [str(c).lower() for c in df.columns]
-            else:
-                df = df.reset_index()
-                df.columns = [str(c).lower() for c in df.columns]
-                df["ticker"] = batch[0]
-
-            if "close" not in df.columns or "volume" not in df.columns:
-                continue
-
-            # Compute monthly returns immediately for this chunk! Drops size by 21x.
-            monthly_batch = compute_monthly_returns(df)
-            all_monthly.append(monthly_batch)
-
-        except Exception as e:
-            logger.error(f"Error downloading batch {batch_num}: {e}")
-            
-        time.sleep(1.0)
-
-    if not all_monthly:
-        raise RuntimeError("No price data downloaded")
-
-    # Only concat the compressed monthly data
-    monthly = pd.concat(all_monthly, ignore_index=True)
-    
-    logger.info(f"Monthly returns: {len(monthly)} rows, "
-                f"{monthly['ticker'].nunique()} tickers, "
-                f"{monthly['month'].min()} – {monthly['month'].max()}")
-
-    save_parquet(monthly, out_file)
-    return monthly
-
-
-# =============================================================================
-# Path A — WRDS/CRSP (stub — requires institutional access)
-# =============================================================================
-
-def build_returns_wrds(force: bool = False) -> pd.DataFrame:
-    """
-    Download monthly stock returns from CRSP via WRDS.
-    Requires: `pip install wrds` and WRDS account credentials.
-
-    Returns standardized table matching Path B output.
-    """
-    try:
-        import wrds
-    except ImportError:
-        raise ImportError("WRDS Python library not installed. Run: pip install wrds")
-
-    cfg = load_config()
-    out_file = Path(get_path(cfg, "processed")) / "returns_monthly.parquet"
-
-    if parquet_exists(out_file) and not force:
-        return load_parquet(out_file)
-
-    db = wrds.Connection()
-
-    query = """
-    SELECT a.permno, a.date, a.ret, a.retx, a.prc, a.shrout, a.vol,
-           a.shrcd, a.exchcd,
-           b.siccd AS sic,
-           ABS(a.prc) * a.shrout / 1000 AS mktcap
-    FROM crsp.msf AS a
-    LEFT JOIN crsp.msenames AS b
-        ON a.permno = b.permno
-        AND a.date BETWEEN b.namedt AND b.nameendt
-    WHERE a.date >= '2004-01-01'
-      AND a.shrcd IN (10, 11)
-      AND a.exchcd IN (1, 2, 3)
-    ORDER BY a.permno, a.date
-    """
-
-    df = db.raw_sql(query)
-    db.close()
-
-    # Handle delisting returns
-    delist_query = """
-    SELECT permno, dlstdt AS date, dlret, dlstcd
-    FROM crsp.msedelist
-    WHERE dlstdt >= '2004-01-01'
-    """
-    # Merge delisting returns... (simplified)
-
-    df["month"] = pd.to_datetime(df["date"]).dt.to_period("M")
-    save_parquet(df, out_file)
-    return df
-
-
-if __name__ == "__main__":
-    # Test with a small set of tickers
-    test_tickers = ["AAPL", "MSFT", "XOM", "JPM", "WMT"]
-    df = build_returns_table(test_tickers, start="2020-01-01", force=True)
-    print(df.head(20))
-    print(f"\nShape: {df.shape}")
+    out = shares.astype("float64").copy()
+    sp = splits.sort_values("date")
+    asof = pd.to_datetime(asof)
+    for tk, grp in sp.groupby("ticker"):
+        idx = tickers.index[tickers == tk]
+        if len(idx) == 0:
+            continue
+        dates = grp["date"].values.astype("datetime64[ns]")
+        # product of ratios strictly after each asof date
+        rev_cum = np.cumprod(grp["ratio"].values[::-1])[::-1]           # prod of ratios[i:]
+        pos = np.searchsorted(dates, asof.loc[idx].values.astype("datetime64[ns]"), side="right")
+        factor = np.append(rev_cum, 1.0)[pos]
+        out.loc[idx] = out.loc[idx].values * factor
+    return out

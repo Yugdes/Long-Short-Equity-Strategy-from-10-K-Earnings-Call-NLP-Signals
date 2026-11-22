@@ -1,0 +1,111 @@
+{
+  "risk": {
+    "rows": 131920,
+    "firms": 16959,
+    "fyear_range": [
+      2005,
+      2025
+    ],
+    "filing_date_range": [
+      "2005-01-03",
+      "2025-01-07"
+    ],
+    "filing_date_missing": 0,
+    "dup_cik_fyear": 0,
+    "filing_year_minus_fyear": {
+      "0": 131920
+    },
+    "word_count_zero": 9320,
+    "word_count_lt1000": 23655,
+    "optional_share": 0.09788508186779867,
+    "columns": [
+      "CIK",
+      "FYEAR",
+      "Item 1A Word Count",
+      "Filing Date",
+      "Item 1A Optional",
+      "Accounting  ",
+      "Accounting  Probability",
+      "Accounting  Classification",
+      "Finance ",
+      "Finance  Probability",
+      "Finance  Classification",
+      "International ",
+      "International  Probability",
+      "International  Classification",
+      "Legal ",
+      "Legal Probability",
+      "Legal Classification",
+      "Management",
+      "Management Probability",
+      "Management Classification",
+      "Marketing",
+      "Marketing Probability",
+      "Marketing Classification",
+      "Operations",
+      "Operations Probability",
+      "Operations Classification",
+      "Technology",
+      "Technology Probability",
+      "Technology Classification",
+      "filing_year"
+    ]
+  },
+  "marketing_exec": {
+    "rows": 337599,
+    "firms": 11296,
+    "year_range": [
+      2003,
+      2025
+    ],
+    "dup_gvkey_yq": 0,
+    "multi_gvkey_rows": 1158,
+    "quarters": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "doc_len_zero": 0,
+    "n_columns": 42
+  },
+  "marketing_analyst": {
+    "rows": 254338,
+    "firms": 9258,
+    "dup_gvkey_yq": 0
+  },
+  "cik_gvkey": {
+    "rows": 1003087,
+    "rows_with_gvkey": 136580,
+    "unique_cik_with_gvkey": 41364,
+    "unique_gvkey": 38575,
+    "gvkeys_with_multiple_ciks": 5082,
+    "ciks_with_multiple_gvkeys": 2328,
+    "source_counts": {
+      "No Link": 866507,
+      "CRSP/Compustat Merged": 44549,
+      "Capital IQ": 43915,
+      "Compustat Company": 31340,
+      "Compustat Security": 16776
+    }
+  },
+  "overlap": {
+    "risk_ciks_in_link": 14476,
+    "risk_ciks_linked_to_marketing_gvkey": 5183,
+    "marketing_gvkeys_linked_to_risk_cik": 5013
+  },
+  "sec_tickers": {
+    "rows": 8016,
+    "risk_ciks_with_current_ticker": 4600
+  },
+  "returns_existing": {
+    "rows": 1148411,
+    "tickers": 7607,
+    "month_range": [
+      "2004-02",
+      "2026-10"
+    ],
+    "firm_years_with_returns": 55490,
+    "pct_firm_years_with_returns": 0.4206337174044876
+  }
+}

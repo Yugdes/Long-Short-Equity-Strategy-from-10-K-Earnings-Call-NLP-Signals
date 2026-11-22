@@ -1,57 +1,29 @@
-# Data: Ignore temporary, interim, raw downloads, and proprietary linking data
+# Generated / downloaded data (rebuild with: python run_all.py)
 data/interim/
-data/raw/wrds/
-data/raw/crsp/
-data/raw/linking/
-data/raw/cik_gvkey.csv
-data/raw/factors/
+data/processed/
+data/raw/yahoo/
 data/raw/sec/
+data/raw/french/
+data/raw/cik_gvkey.csv
 *.zip
-*.sas7bdat
-*.dta
+# Local-only working files (paper text conversions etc.)
+internal_files/
 scratch/
-
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
-.eggs/
 venv/
 .venv/
-env/
-
-# IDE
+.pytest_cache/
+.ipynb_checkpoints/
+# Website
+website/node_modules/
+website/dist/
+website/public/data/
+# IDE / OS
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Results (generated — keep small samples only)
-# results/tables/*.csv
-# results/figures/*.png
-results/figures/*.pdf
-!results/tables/.gitkeep
-!results/figures/.gitkeep
-
-# Reports (generated)
-reports/*.pdf
-reports/*.xlsx
-reports/*.pptx
-
-# Logs
 *.log
-
-# Internal working documents & stage reports
-internal_files/
