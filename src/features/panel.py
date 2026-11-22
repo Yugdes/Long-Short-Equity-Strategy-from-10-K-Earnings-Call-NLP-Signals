@@ -7,6 +7,8 @@ Row (cik, month=t): returns realised in month t (targets) and features known bef
 Firm-history transforms (changes, surprises) are computed at the filing/quarter level from past
 releases only; cross-sectional transforms happen per month in signals.py.
 """
+import copy
+
 import numpy as np
 import pandas as pd
 
@@ -18,13 +20,13 @@ from src.data.sec import parse_companyfacts
 from src.data.security_master import build_security_master
 from src.features.characteristics import (annual_fundamentals, asof_join, full_monthly_grid,
                                           latest_facts, return_characteristics, shares_table)
-from src.features.timing import risk_first_month
+from src.features.timing import risk_first_month, marketing_first_month
 from src.utils.config import load_config, path
 
 RISK_BASE = [f"{f}_prob" for f in FACTORS]
 
 
-def risk_filing_features(risk: pd.DataFrame) -> pd.DataFrame:
+def risk_filing_features(risk: pd.DataFrame, lag_bdays: int | None = None) -> pd.DataFrame:
     """Per-filing features from the firm's own past filings only."""
     r = risk.sort_values(["cik", "filing_date"]).copy()
     r["dens_ops"] = r["operations_cnt"] / r["words"]          # dictionary density (count per word)
@@ -38,7 +40,8 @@ def risk_filing_features(risk: pd.DataFrame) -> pd.DataFrame:
         r[f"d_{c}"] = (r[c] - prev).where(gap <= 548)
         past_mean = g[c].transform(lambda x: x.shift(1).expanding(min_periods=2).mean())
         r[f"s_{c}"] = r[c] - past_mean
-    r["risk_first_month"] = risk_first_month(r["filing_date"], load_config()["timing"]["risk_lag_bdays"])
+    lag = load_config()["timing"]["risk_lag_bdays"] if lag_bdays is None else lag_bdays
+    r["risk_first_month"] = risk_first_month(r["filing_date"], lag)
     r["filing_month"] = r["filing_date"].dt.to_period("M")
     return r
 
@@ -61,11 +64,13 @@ def marketing_quarter_features(mk: pd.DataFrame) -> pd.DataFrame:
     return m[keep]
 
 
-def build_panel(force: bool = False) -> pd.DataFrame:
-    out = path("processed") / "panel.parquet"
+def build_panel(force: bool = False, timing: dict | None = None, out_name: str = "panel.parquet") -> pd.DataFrame:
+    """`timing` overrides config.timing keys (robustness: alternative lags) and should be paired with `out_name`."""
+    out = path("processed") / out_name
     if out.exists() and not force:
         return pd.read_parquet(out)
-    cfg = load_config()
+    cfg = copy.deepcopy(load_config())
+    cfg["timing"].update(timing or {})
     sm = build_security_master()
     pm, splits = build_monthly()
     ff = load_ff_factors()
@@ -129,7 +134,7 @@ def build_panel(force: bool = False) -> pd.DataFrame:
     p["fvol_12"] = gp_["ret"].transform(lambda x: x[::-1].rolling(12, min_periods=10).std()[::-1])
 
     # --- risk text (as of t, with staleness cap) ---
-    rk = risk_filing_features(load_risk_scores())
+    rk = risk_filing_features(load_risk_scores(), cfg["timing"]["risk_lag_bdays"])
     rcols = [c for c in rk.columns if c.endswith(("_prob", "_cnt")) or c.startswith(("d_", "s_"))] + \
             ["dens_ops", "log_words", "words", "optional", "filing_date", "filing_month"]
     rcols = list(dict.fromkeys(rcols))
@@ -139,7 +144,9 @@ def build_panel(force: bool = False) -> pd.DataFrame:
     p = p.join(rj)
 
     # --- marketing (as of t, live for mkt_max_age_months) ---
-    mq = marketing_quarter_features(load_marketing(set(sm["cik"])))
+    mk = load_marketing(set(sm["cik"]))
+    mk["first_month"] = marketing_first_month(mk["year"], mk["quarter"], cfg["timing"]["mkt_buffer_months"])
+    mq = marketing_quarter_features(mk)
     mcols = [c for c in mq.columns if c not in ("cik", "first_month")] + ["mkt_first_month"]
     mq["mkt_first_month"] = mq["first_month"]
     mj = asof_join(p, mq, "first_month", mcols)

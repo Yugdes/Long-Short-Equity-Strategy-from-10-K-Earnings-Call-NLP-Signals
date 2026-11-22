@@ -112,3 +112,13 @@ Robustness variants: an NYSE-20th-percentile microcap cut (using this sample's N
 Verified caps: NVDA May-2024 $2.74T, AAPL Jun-2015 $723B, MSFT Dec-2012 $225B. The residual errors I know of (ADS-ratio issuers such as BeiGene, a missing DuPont reverse split) are a few names, bounded at about 3–13×.
 
 **D-022 — 2026-11-22 — "Value-weighted" means capped value weights.** Market cap is winsorised each month at the 80th percentile of currently NYSE-listed names in the universe (Jensen, Kelly & Pedersen 2023 use NYSE 80th-percentile caps). Two reasons: (1) it limits mega-cap concentration (MSFT alone is 21% of the universe's cap in 2025-06); (2) it bounds the influence of the residual cap errors in D-021. Uncapped VW is reported as a robustness check.
+
+**D-023 — 2026-11-22 — ML grid and compute budget.**
+- *Feature sets* (nested, identical rows, so matched by construction): C (10 controls) ⊂ C+R (+ risk text) ⊂ C+R+M (+ marketing; imputed 0 + `has_mkt` flag) ⊂ ALL (+ interactions). TEXT = R+M+X, without controls.
+- *Learners:* ElasticNet (α × l1 grid of 9), LightGBM (num_leaves 15/63, min_child 1000, lr 0.03, early stopping on validation), XGBoost (depth 3/6, same style), MLP (32-16, L2 2 values, epochs ≤ 25 chosen on validation, 2-seed average), and an equal-weight mean ensemble.
+- *Scope:* ENet and LGBM run on all 5 sets. XGB, MLP and the ensemble run on C and ALL, which is the comparison H5 needs. This saves ~1.5 h of CPU for comparisons no hypothesis needs.
+- *Protocol:* tuning uses the last 2 years of each training window (1-month gap); the model is then refit on the whole window. Annual refits; test years 2014–2021; target = centred rank of the month-*t* excess return.
+
+**D-024 — 2026-11-22 — H1's realised-volatility test uses formation months up to 2020-12 only.** The forward 12-month window then ends by 2021-12 and never reads the locked test window.
+
+**D-025 — 2026-11-22 — Reduced grids outside the primary horizon.** The 3-month-horizon robustness run uses ENet (ALL) and LGBM (C vs ALL) only. The final locked-window run uses all 4 learners on C and ALL plus the ensemble: what the frozen primary strategy and the H5 comparison need, and nothing else, so the test window is evaluated on as few specs as possible.

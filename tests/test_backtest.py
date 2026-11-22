@@ -81,3 +81,14 @@ def test_deflated_sharpe_penalises_many_trials():
     few = deflated_sharpe(0.2, 120, 0.0, 3.0, np.random.default_rng(0).normal(0, 0.05, 2))
     many = deflated_sharpe(0.2, 120, 0.0, 3.0, np.random.default_rng(0).normal(0, 0.05, 500))
     assert many["dsr"] < few["dsr"] and many["sr0_monthly"] > few["sr0_monthly"]
+
+
+def test_pbo_low_for_one_dominant_strategy_high_for_noise():
+    from src.evaluation.robustness import pbo_cscv
+    pbos = [pbo_cscv(pd.DataFrame(np.random.default_rng(s).normal(0, 0.02, (160, 8))), n_blocks=8)["pbo"]
+            for s in range(20)]
+    assert 0.35 < np.mean(pbos) < 0.65                              # pure noise: ~0.5 on average
+    noise = pd.DataFrame(np.random.default_rng(0).normal(0, 0.02, (160, 8)))
+    good = noise.copy()
+    good[0] += 0.01                                                 # one genuinely better strategy
+    assert pbo_cscv(good, n_blocks=8)["pbo"] < 0.1
