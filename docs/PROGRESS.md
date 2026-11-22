@@ -10,8 +10,8 @@
 | 1 Research grounding | ✅ done 2026-11-22 | LITERATURE.md (16 verified works), RESEARCH_DESIGN.md (H1–H5, primary spec, hurdles) |
 | 2 Point-in-time panel | ✅ done 2026-11-22 | data/processed/panel.parquet (308,283 rows; 222k primary stock-months); 32 tests pass incl. no-look-ahead invariants on the real panel |
 | 3 Features | ✅ code done (src/features/signals.py, tests) | ~90 rank features in 4 groups |
-| 4 Models | ✅ dev ladder done (results/tables/ml_summary_dev_h1.csv); h=3 + alt-lag robustness running | |
-| 5 Backtest | ⏳ | |
+| 4 Models | ✅ dev + locked test (rerun after D-028/D-029) | results/tables/ml_summary_{dev,final}_h1.csv |
+| 5 Backtest | 🔄 analysis/export rerunning after fixes | |
 | 6 Robustness / SHAP | ⏳ | |
 | 7 Website | ⏳ | |
 | 8 Final QA | ⏳ | |
@@ -42,9 +42,15 @@
 - **No decile L/S has a significant FF5+Mom alpha** (VW |t| ≤ 1.1; EW ≤ 1.6). Primary (ens ALL VW d10) gross Sharpe 0.08, α −3.3%/yr (t −0.59).
 - FM of returns on the forecast rank with controls: t ≈ 2.5–2.7 (below the hurdle).
 
+## Test unlock, bug and rerun (2026-11-22)
+- D-027: design frozen, test window unlocked. The first test run looked too good (VW Sharpe 1.5–2.0, α t up to 5.3).
+- D-028: cause was look-ahead from reverse splits in 2026 missing from the Yahoo split list (end-dated download). Fixed: download with no end date; everything rebuilt.
+- D-029: independent reviewer findings fixed (rank ensemble, sample end 2025-05, h3 embargo, cleaning rule, DSR family, continuous tear sheet, raw-ZCA robustness, time-varying survivorship caveat).
+- Corrected dev (2014–2021): ens ALL IC 0.041 (t 3.6), VW d10 gross Sharpe 0.28, FF5+Mom α t 0.37. Corrected test (2022-01–2025-05): IC 0.048–0.067, VW gross Sharpe −0.03–1.2, α t −2.5 to 1.0; text adds nothing over controls in test.
+
 ## Next steps
-1. When `src.models.run_ml` (h=1) finishes: run h=3 (`python -m src.models.run_ml --horizon 3`), then `python run_all.py --only analysis`, `--only export`, build the site, check with Playwright.
-2. Then freeze the design → log the unlock in DECISIONS → set config test.unlocked=true → `python -m src.models.run_ml --final` → analysis/export again.
+1. `run_all.py --from analysis` (analysis → export → notebooks) is running (log data/interim/run_all_analysis.log).
+2. Then: rebuild site data, Playwright desktop/mobile/dark checks, README headline numbers, second reviewer pass on site-vs-code numbers, final commit, delete `MS 499/.playwright-mcp` (tool output folder created outside the project).
 
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.

@@ -70,7 +70,7 @@ def main(horizon=1, final=False):
     # ensembles: mean prediction of the 4 learners (all predict the same centred-rank target)
     for s in (("C", "ALL") if horizon == 1 else ()):
         ps = [pd.read_parquet(out_dir / f"{s}__{m}__h{horizon}{'_final' if final else ''}.parquet") for m in LEARNERS]
-        # pre-registered equal-weight RANK ensemble (RESEARCH_DESIGN ง3; corrected in D-029): each learner's
+        # pre-registered equal-weight RANK ensemble (RESEARCH_DESIGN ยง3; corrected in D-029): each learner's
         # predictions are ranked within the month first, so no learner dominates through its scale
         ps = [p.assign(pred=p.groupby("month")["pred"].rank(pct=True) - 0.5) for p in ps]
         ens = pd.concat(ps).groupby(["cik", "month"], as_index=False)["pred"].mean()

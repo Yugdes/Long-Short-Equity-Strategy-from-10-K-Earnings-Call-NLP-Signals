@@ -1,149 +1,79 @@
-# Disclosed Operational Risk as an Equity Signal
+# Reading the Risk Factors
 
-**A systematic quantitative long-short equity strategy built on NLP-derived 10-K risk disclosures, with a Marketing Emphasis overlay.**
+**Do 10-K risk-factor disclosures and earnings-call marketing language predict U.S. stock returns?**
 
-> *This project investigates whether text-derived operational risk scores from annual SEC 10-K filings are priced by the stock market, net of known risk factors. It then integrates Marketing Emphasis scores to test whether high customer orientation acts as a "shield" against operational risk penalties.*
+A point-in-time, walk-forward study combining two published text datasets with free market data:
+- Astvansh & Simpson (2026, *MSOM*): transformer scores for 8 risk factors in Item 1A of 131,920 10-K filings.
+- Damavandi, Mai & Astvansh (2025, *Marketing Letters*): SBERT scores for 19 marketing-emphasis components of earnings calls.
 
----
+The pipeline builds a monthly stock panel in which every number is public before the month begins. It tests pre-registered hypotheses with portfolio sorts and Fama-MacBeth regressions, climbs a model ladder (elastic net, LightGBM, XGBoost, neural net, ensemble), and backtests a long-short strategy with costs, factor alphas, robustness, placebo and overfitting checks, and SHAP. The final 41 months (2022-01 → 2025-05) were locked until the design was frozen.
 
-## The Mission & Datasets
+<!-- HEADLINE-RESULTS -->
 
-The goal of this MS 499 thesis is to combine the proprietary datasets of two separate academic papers to test a novel quantitative finance hypothesis over a comprehensive 20-year universe of U.S. equities.
+## How to run
 
-**Core Datasets Used:**
-1.  **The Risk Dataset**: `dataset.xlsx` (Astvansh & Simpson, 2026). Over 131,000 firm-year filings scored via Transformer NLP models on 8 specific risk categories.
-2.  **The Marketing Dataset**: `MarketingEmphasisScores_Executive.csv` (Damavandi et al., 2025). Over 337,000 rows scoring firms on Marketing Emphasis (Customer Orientation, Profit Focus, etc.) based on Earnings Calls NLP.
-3.  **The Linking Table**: `cik_gvkey.csv`. Used to mathematically merge the Risk Data (CIK) with the Marketing Data (GVKEY).
-4.  **The Market Universe**: Daily adjusted closing prices for the entire SEC ticker universe (over 7,600 active firms) downloaded directly from Yahoo Finance, comprising over 45 million daily price rows compressed into 1.15 million monthly returns.
-
----
-
-## 1. Baseline Hypothesis: Does High Operational Risk lead to lower stock prices?
-
-**Conclusion: YES. High Operational Risk generates a statistically significant penalty.**
-
-We sorted all 7,600+ stocks into quintiles based on their NLP-derived Operational Risk, adjusting for industry baselines. We then ran a standard Fama-French 5-Factor + Momentum regression on the Long-Short (Q1 safe minus Q5 risky) spread from 2004–2025.
-
-| Factor Model | Annualized Alpha (α) | t-statistic | Adj R² |
-| :--- | :--- | :--- | :--- |
-| CAPM | −6.47% | −1.78 | -0.004 |
-| Fama-French 3-Factor | −6.57% | −1.68 | -0.007 |
-| Fama-French 5-Factor | −6.32% | −1.85 | -0.015 |
-| **FF5 + Momentum** | **−6.00%** | **−1.85** | **-0.010** |
-
-**Interpretation:** After controlling for Market, Size, Value, Profitability, Investment, and Momentum factors, firms disclosing the highest operational risk suffer an unexplained **6.00% annual penalty** compared to firms with the lowest risk. The t-statistic of -1.85 indicates statistical significance.
-
----
-
-## 2. The Marketing Shield: Does Marketing mitigate Operational Risk?
-
-**Conclusion: No. It acts as a "Distraction Penalty."**
-
-We hypothesized that if a company has high operational risk, having a strong marketing emphasis might "shield" its stock price by keeping customers loyal. The raw data disproves this.
-
-![Risk vs Marketing](results/figures/risk_vs_marketing.png)
-
-When we mathematically merged the Marketing Emphasis scores with the Risk scores across the 1.15 million stock-month panel, the regression line revealed a slight *negative* relationship. Companies that focus heavily on marketing while simultaneously possessing extreme operational risk actually perform *worse*. The market appears to view extreme marketing during an operational crisis as a distraction rather than a shield.
-
----
-
-## 3. Machine Learning: Predictive Alpha Generation
-
-To determine exactly which features contribute the most to future stock returns, we built an institutional-grade **Walk-Forward LightGBM** machine learning model.
-
-### Methodology
-- **No Look-Ahead Bias**: Signals are constructed strictly point-in-time using `pd.merge_asof`.
-- **Walk-Forward**: The model trains on a rolling, expanding window (e.g., Train 2005-2012, Test 2013, then step forward 1 year).
-- **Serialization**: All 14 Walk-Forward split models are serialized and saved to `results/models/lightgbm_split_X.joblib`.
-
-### Out-of-Sample Results
-The Machine Learning model evaluated on the out-of-sample data (412,789 out-of-sample monthly observations) achieved the following performance metrics:
-
-*   **Information Coefficient (IC):** `0.0639`
-*   **Information Ratio (IC-IR):** `0.501`
-*   **Out-of-Sample R² (OOS R²):** `0.0032`
-
-**Interpretation**: In quantitative finance, predicting stock returns is extremely difficult due to market efficiency. An Information Coefficient (IC) of 0.0639 is exceptionally strong, proving the model has a statistically significant edge in ranking future winners and losers. Furthermore, the positive Out-of-Sample R² proves the model consistently beats a naive zero-mean prediction baseline.
-
-### Feature Importance (What drives the predictions?)
-
-![Feature Importances](results/figures/feature_importances.png)
-
-When the LightGBM models evaluated the feature splits, the NLP metrics for **Operational Risk**, **Marketing Excellence**, and **Capabilities** dominated the decision trees, proving that NLP extraction from 10-K filings and Earnings calls holds genuine predictive power for future equity returns.
-
----
-
-## Repository Structure
-
-```text
-├── config/                  # Configuration (sample windows, filters, hyperparams)
-├── src/
-│   ├── data/                # Data ingestion (Risk, Marketing, EDGAR, yfinance)
-│   ├── features/            # Signal construction and point-in-time panel generation
-│   ├── backtest/            # Portfolio construction, metrics, factor regressions
-│   ├── ml/                  # Walk-forward validation, LightGBM models
-│   ├── analysis/            # Text diagnostics (autocorrelation, prob-count correlations)
-│   └── utils/               # Helpers, config loader, finance-style plotting
-├── scripts/                 # Utility scripts
-├── app/                     # Streamlit dashboard (interactive ML predictions & trajectories)
-├── docs/                    # Detailed methodology and research proofs (ML_METHODOLOGY.md)
-├── data/
-│   ├── raw/                 # Raw input datasets (dataset.xlsx, MarketingEmphasis, cik_gvkey)
-│   ├── interim/             # Intermediate cached parquets
-│   └── processed/           # Final pipeline outputs (panel, signals, ml_predictions)
-├── results/                 # Output tables, models, and figures
-│   ├── figures/             # Feature importances, risk vs marketing scatter plots
-│   ├── tables/              # Factor regression CSVs
-│   └── models/              # 14 Serialized LightGBM models (.joblib)
-├── tests/                   # Automated quality assurance
-├── venv/                    # Python virtual environment (not committed)
-├── Makefile                 # Build orchestration
-└── requirements.txt         # Python dependencies
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-- Python 3.10+
-- 16GB+ RAM (Due to processing 1.15 million rows of stock history)
-
-### Setup
 ```bash
-# Clone the repository
-git clone https://github.com/Yugdes/Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals.git
-cd Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals
+# 1. environment (Python 3.10)
+py -3.10 -m venv venv
+venv\Scripts\python -m pip install -r requirements-lock.txt
 
-# Create and activate virtual environment
-python -m venv venv
-.\venv\Scripts\activate        # Windows
+# 2. everything, from raw data to website data (stages reuse their caches)
+venv\Scripts\python run_all.py              # download → panel → features → tests → single → ml → analysis → export → notebooks
+venv\Scripts\python run_all.py --from panel # rebuild every derived file from the frozen raw downloads
+venv\Scripts\python -m pytest -q            # test suite (timing / look-ahead, prices, portfolios, metrics, walk-forward)
 
-# Install dependencies
-pip install -r requirements.txt
+# 3. website (Vite + React + TypeScript + Plotly), reads results/json
+cd website
+npm install
+npm run dev      # local server
+npm run build    # static files in website/dist
 ```
 
-### Execution
+Raw inputs:
+- **In the repo:** the risk scores (`data/raw/risk/`) and marketing scores (`data/raw/marketing/`).
+- **Not in the repo:** the WRDS CIK–GVKEY link table (`data/raw/cik_gvkey.csv`), which is licensed and gitignored.
+- **Downloaded on first run, then frozen:** Yahoo prices (`data/raw/yahoo/`), SEC bulk XBRL and submissions (`data/raw/sec/`), and Ken French factors (`data/raw/french/`). Set the `SEC_USER_AGENT` environment variable to your own contact string before downloading from the SEC.
 
-**Run the full pipeline to regenerate all proofs:**
-```bash
-python -m src.run_all --force
+A full rebuild takes about 2–3 hours on an 8-core laptop, most of it the walk-forward models.
+
+## Repository map
+
 ```
-*(Note: Because this hits the Yahoo Finance API to download 20 years of data for 7,600+ tickers in batches, this process will take approximately 18-20 minutes to complete).*
-
-**Launch the interactive thesis dashboard:**
-```bash
-streamlit run app/streamlit_app.py
+config/config.yaml        all parameters: timing rules, sample windows, universe, costs, test lock
+run_all.py                one-command pipeline
+src/data/                 risk.py, marketing.py (GVKEY→CIK links), sec.py (XBRL, SIC), prices.py (Yahoo),
+                          factors.py (French), security_master.py
+src/features/             timing.py (release rules), characteristics.py, panel.py (point-in-time panel), signals.py
+src/models/               walkforward.py, learners.py, run_ml.py, diagnostics.py
+src/backtest/             portfolios.py, metrics.py, regressions.py, tearsheet.py
+src/evaluation/           single_signals.py, predictive.py, robustness.py, explain.py (SHAP), sanity.py, speclog.py
+src/viz/export.py         analysis + JSON export for the website
+src/utils/                config.py, lock.py (locked-test-window guard)
+tests/                    pytest suite
+notebooks/                01_eda … 06_explainability (executed; read pipeline outputs)
+results/                  tables/, json/ (website data), spec_log.csv (multiple-testing log)
+website/                  the presentation site
+docs/                     PLAN, PROGRESS, DECISIONS, DATA_AUDIT, ENVIRONMENT, RESEARCH_DESIGN, LITERATURE
 ```
 
----
+## Key documents
+- `docs/RESEARCH_DESIGN.md`: hypotheses H1–H5 and the primary specification, written before any return was examined.
+- `docs/DECISIONS.md`: every methodological choice with alternatives and rationale, including the audit of earlier work, the test unlock (D-027), a look-ahead bug caught through the test window (D-028), and the independent reviewer's fixes (D-029).
+- `docs/DATA_AUDIT.md`: inventory, coverage, identifiers and timing evidence for every input.
 
-## Authors & Citations
+## Limitations (summary)
+- **Survivorship.** Free price data only covers firms that still trade, and the bias is stronger in early years than late ones.
+- **Current, not historical, identifiers** (industry, ticker, exchange).
+- **Size and book data start in 2009–2011** (XBRL).
+- **Untested score validity:** the risk scores come from transformers trained on synthetic sentences with no human validation on real filings.
 
-Developed by **Yug Mitulkumar Desai** and **Arin Mehta** as part of MS 499 (Independent Research).
+Full discussion: the Limitations section of the website.
 
-**Foundational Papers (Data Sources):**
-* Astvansh, V. & Simpson, J. J. (2026). *A Firm's Operational Risk: Data Set and Empirical Evidence*. Manufacturing & Service Operations Management.
-* Damavandi, H., Mai, F. & Astvansh, V. (2025). *A new technique for measuring a firm's marketing emphasis*. Marketing Letters.
+## Authors
+Developed by Yug Mitulkumar Desai and Arin Mehta as part of MS 499 (Independent Research).
 
-*Disclaimer: This repository is for educational and research purposes only and does not constitute investment advice.*
+## Citation
+Astvansh, V., & Simpson, J. J. (2026). A firm's operational risk: Data set and empirical evidence. *Manufacturing & Service Operations Management*, 28(1), 326–341.
+Damavandi, H., Mai, F., & Astvansh, V. (2025). A new technique for measuring a firm's marketing emphasis. *Marketing Letters*, 36(4), 823–837.
+
+Research and teaching use only; not investment advice.

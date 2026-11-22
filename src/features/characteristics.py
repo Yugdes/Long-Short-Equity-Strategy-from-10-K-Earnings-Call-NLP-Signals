@@ -15,6 +15,8 @@ def asof_join(left: pd.DataFrame, right: pd.DataFrame, key: str, cols: list) -> 
     l = left[["cik", "month"]].copy()
     l["_k"] = l["month"].astype("int64") if l["month"].dtype == "int64" else pd.PeriodIndex(l["month"]).asi8
     r = right[["cik", key] + cols].copy()
+    f64 = r[cols].select_dtypes("float64").columns
+    r[f64] = r[f64].astype("float32")          # memory: the panel stores float32 anyway
     r["_k"] = pd.PeriodIndex(r[key]).asi8
     l = l.reset_index().sort_values("_k")
     r = r.drop(columns=key).sort_values("_k", kind="stable")

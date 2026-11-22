@@ -133,6 +133,18 @@ def build_panel(force: bool = False, timing: dict | None = None, out_name: str =
     p["exret_3m"] = p["ret_3m"] - (p["rf"] + p["month"].map(rf.shift(-1)) + p["month"].map(rf.shift(-2)))
     p["fvol_12"] = gp_["ret"].transform(lambda x: x[::-1].rolling(12, min_periods=10).std()[::-1])
 
+    # --- cheap universe screens BEFORE the wide joins (memory; identical result: dropped rows can never
+    #     be eligible). Forward targets above were computed first because they need the later rows. ---
+    del g, lagged
+    p = p.merge(sm[["cik", "ff48", "ff12", "fin_util", "exchange"]], on="cik", how="left")
+    u, s = cfg["universe"], cfg["sample"]
+    pre = (p["ret"].notna() & (p["prc_l"] >= u["min_price"]) & (p["hist_l"] >= u["min_history_months"])
+           & ~p["fin_util"].astype(bool) & (p["month"] >= pd.Period(s["extended_start"], "M"))
+           & (p["month"] <= pd.Period(s["end"], "M")))
+    p = p[pre].reset_index(drop=True)
+    f64 = p.select_dtypes("float64").columns
+    p[f64] = p[f64].astype("float32")
+
     # --- risk text (as of t, with staleness cap) ---
     rk = risk_filing_features(load_risk_scores(), cfg["timing"]["risk_lag_bdays"])
     rcols = [c for c in rk.columns if c.endswith(("_prob", "_cnt")) or c.startswith(("d_", "s_"))] + \
@@ -154,11 +166,8 @@ def build_panel(force: bool = False, timing: dict | None = None, out_name: str =
     mj.loc[~(mage < cfg["timing"]["mkt_max_age_months"]), mcols] = np.nan
     p = p.join(mj)
 
-    # --- universe flags (D-008, D-009, D-018) ---
-    p = p.merge(sm[["cik", "ff48", "ff12", "fin_util", "exchange"]], on="cik", how="left")
-    u, s = cfg["universe"], cfg["sample"]
-    base = (p["operations_prob"].notna() & p["ret"].notna() & (p["prc_l"] >= u["min_price"])
-            & (p["hist_l"] >= u["min_history_months"]) & ~p["fin_util"].astype(bool) & (p["month"] <= pd.Period(s["end"], "M")))
+    # --- universe flags (D-008, D-009, D-018); the price/history/sector/date screens were applied above ---
+    base = p["operations_prob"].notna()
     p["elig_ext"] = base & (p["month"] >= pd.Period(s["extended_start"], "M"))
     p["elig"] = base & (p["mcap_l"] >= u["min_mcap_musd"]) & (p["month"] >= pd.Period(s["primary_start"], "M"))
     p = p[p["elig_ext"] | p["elig"]].reset_index(drop=True)

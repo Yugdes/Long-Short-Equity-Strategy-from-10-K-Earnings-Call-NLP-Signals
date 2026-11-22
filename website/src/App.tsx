@@ -15,9 +15,27 @@ const TOC: [string, string][] = [["motivation", "Motivation"], ["data", "Dataset
   ["models", "Models"], ["results", "Results"], ["robustness", "Robustness"], ["explain", "Explainability"],
   ["limitations", "Limitations"], ["references", "References"]];
 
+type ModelsLite = { vol_prediction_dev: Record<string, number | string>[] };
+
+/** The verdict is assembled from exported numbers; the wording states what they support and nothing more. */
+function verdict(s: Summary, m: ModelsLite | null) {
+  const p = s.primary as Record<string, number>;
+  const sig = (t: number) => Math.abs(t) >= 3;
+  const vol = (m?.vol_prediction_dev ?? []).filter((r) => r.spec === "with_controls" && /_prob$/.test(String(r.signal)) && !String(r.signal).includes("nonop"));
+  const nVol = vol.filter((r) => Math.abs(r.t_nw as number) >= 3).length;
+  const alphaDev = sig(p.dev_net_t_alpha), alphaTest = p.test_net_t_alpha !== undefined && sig(p.test_net_t_alpha);
+  const head = alphaDev || alphaTest ? "Partly." : "Not as a trading strategy.";
+  return `${head} The models rank next-month returns better than chance in both periods (rank IC ${fx(p.dev_ic_mean, 3)} in 2014–2021` +
+    (p.test_ic_mean !== undefined ? ` and ${fx(p.test_ic_mean, 3)} in the locked 2022–2025 test` : "") +
+    `), but the long-short portfolio built on them earns ${alphaDev || alphaTest ? "only weak" : "no significant"} alpha after the five Fama-French factors, momentum and trading costs` +
+    ` (t = ${fx(p.dev_net_t_alpha, 1)}` + (p.test_net_t_alpha !== undefined ? ` and ${fx(p.test_net_t_alpha, 1)}` : "") + `).` +
+    ` The forecasts mostly re-express known characteristics. The text does carry information about risk: ${nVol} of 8 disclosed risk factors predict next-year volatility (|t| ≥ 3), some up and some down.`;
+}
+
 function Hero() {
   const s = useData<Summary>("summary");
-  if (!s) return <header className="hero"><p className="loading">Loading�</p></header>;
+  const m = useData<ModelsLite>("models");
+  if (!s) return <header className="hero"><p className="loading">Loading…</p></header>;
   const p = s.primary;
   const hasTest = s.unlocked && p.test_net_sharpe !== undefined;
   return (
@@ -25,10 +43,10 @@ function Hero() {
       <h1>Do the risks firms write down predict their stock returns?</h1>
       <p className="lede">A point-in-time test of {num(s.n_filings)} scored 10-K risk sections and quarterly earnings-call
         language, combined with machine learning into a long-short equity strategy across {num(s.n_firms_panel)} U.S. firms.</p>
-      <p className="verdict" id="verdict">{String(p.verdict ?? "")}</p>
+      <p className="verdict" id="verdict">{verdict(s, m)}</p>
       <div className="stats">
-        <div className="stat"><div className="v num">{fx(p.dev_ic_mean as number, 3)}</div><div className="l">mean monthly rank IC, development window 2014�2021 (t = {fx(p.dev_ic_t as number, 1)})</div></div>
-        <div className="stat"><div className="v num">{fx(p.dev_net_sharpe as number, 2)}</div><div className="l">Sharpe ratio, primary long-short net of 25 bps, 2014�2021</div></div>
+        <div className="stat"><div className="v num">{fx(p.dev_ic_mean as number, 3)}</div><div className="l">mean monthly rank IC, development window 2014–2021 (t = {fx(p.dev_ic_t as number, 1)})</div></div>
+        <div className="stat"><div className="v num">{fx(p.dev_net_sharpe as number, 2)}</div><div className="l">Sharpe ratio, primary long-short net of 25 bps, 2014–2021</div></div>
         <div className="stat"><div className="v num">{pct(p.dev_net_alpha_ann as number)}</div><div className="l">FF5 + momentum alpha a year (t = {fx(p.dev_net_t_alpha as number, 1)})</div></div>
         {hasTest
           ? <div className="stat"><div className="v num">{fx(p.test_net_sharpe as number, 2)}</div><div className="l">net Sharpe in the locked test window, {s.test_window[0]} to {s.test_window[1]}</div></div>

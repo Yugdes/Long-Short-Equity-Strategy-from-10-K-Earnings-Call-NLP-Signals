@@ -52,15 +52,16 @@ def _oos(feat, s, m, h=1):
 
 def alt_lag_runs(variants: dict) -> pd.DataFrame:
     """Rebuild the panel under alternative timing, then rerun LGBM-ALL walk-forward (dev window)."""
-    from src.features.panel import build_panel
-    from src.features.signals import make_features
     cfg = load_config()
     rows = []
     for name, timing in variants.items():
         f = path("processed") / f"features_{name}.parquet"
-        if not f.exists():
-            p = build_panel(force=True, timing=timing, out_name=f"panel_{name}.parquet")
-            make_features(p, "elig").to_parquet(f, index=False)
+        if not f.exists():   # each rebuild in a fresh process: three panels in one process exhaust RAM
+            import json, subprocess, sys
+            code = ("import json; from src.features.panel import build_panel; from src.features.signals import make_features; "
+                    f"p = build_panel(force=True, timing=json.loads({json.dumps(json.dumps(timing))}), out_name='panel_{name}.parquet'); "
+                    f"make_features(p, 'elig').to_parquet(r'{f}', index=False)")
+            subprocess.run([sys.executable, "-W", "ignore", "-c", code], check=True, cwd=str(path("results").parent))
         ft = pd.read_parquet(f)
         pf = path("processed") / "preds" / f"ALL__lgbm__h1_{name}.parquet"
         if not pf.exists():
@@ -96,9 +97,14 @@ def rb_window(s: pd.Series, win) -> pd.Series:
 
 
 def run_analysis():
+    import gc
+    res = {}
+    # alternative-lag panels are rebuilt first, before the large analysis objects exist (memory)
+    res["alt_lags"] = alt_lag_runs({"mkt_lag0": {"mkt_buffer_months": 0}, "mkt_lag2": {"mkt_buffer_months": 2},
+                                    "risk_lag10bd": {"risk_lag_bdays": 10}})
+    gc.collect()
     ff = load_ff_factors()
     feat = _feat()
-    res = {}
     # ---- primary strategy + model ladder comparison (dev; + test after unlock) ----
     d = _oos(feat, *PRIMARY)
     cfg = load_config()
@@ -151,8 +157,6 @@ def run_analysis():
     # trials are gross series, so the tested primary series is gross too
     res["dsr"] = rb.dsr_for(rb_window(res["tear"]["series"]["d10_vw"]["gross"], dev_win),
                             stage_filter=DEV_STAGES)
-    res["alt_lags"] = alt_lag_runs({"mkt_lag0": {"mkt_buffer_months": 0}, "mkt_lag2": {"mkt_buffer_months": 2},
-                                    "risk_lag10bd": {"risk_lag_bdays": 10}})
     res["horizon3"] = pd.read_csv(path("results") / "tables" / "ml_summary_dev_h3.csv")
     # extended EW sample incl. 2008-09: single-signal sorts only (no size data before XBRL)
     from src.backtest.portfolios import sort_portfolios as sp
