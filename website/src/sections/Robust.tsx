@@ -20,7 +20,22 @@ const DIAG_LABEL: Record<string, string> = { "C+flag": "Controls + earnings-call
   "C+M": "Controls + marketing", "C+R+Mraw": "Controls + risk + raw (not whitened) marketing components" };
 const GROUP_LABEL: Record<string, string> = { controls: "Price and accounting controls", risk: "10-K risk text", marketing: "Earnings-call marketing", interactions: "Risk × marketing interactions" };
 
-export const featureLabel = (f: string) => f.replace(/^r_/, "").replace(/^x_/, "× ").replace(/_prob$/, "").replace(/^d_/, "Δ ").replace(/^s_/, "surprise ").replace(/_/g, " ");
+const NAMES: Record<string, string> = {
+  rev_1: "1-month reversal", vol_12: "12-month volatility", mom_12_2: "momentum (12-2)", illiq_12: "Amihud illiquidity",
+  gp: "gross profitability", beta_36: "market beta", size: "size (log cap)", ldvol_3: "dollar volume", bm: "book-to-market",
+  ag: "asset growth", has_mkt: "has earnings-call data", mkt_capab: "marketing capabilities", mkt_orient: "market orientation",
+  mkt_excel: "marketing excellence", an_cust: "analysts' customer orientation", nonop: "non-operational risk", risk_all: "all risk factors",
+  dens_ops: "operations dictionary density", log_words: "Item 1A length", ops_ind: "operations risk, industry-relative",
+};
+export const featureLabel = (f: string) => {
+  let k = f.replace(/^r_/, "").replace(/_prob$/, "");
+  if (k.startsWith("x_")) return "× " + k.slice(2).replace(/_/g, " ");
+  let pre = "";
+  if (k.startsWith("zca_")) { k = k.slice(4); pre = ""; return (NAMES[k] ?? k.replace(/_/g, " ")) + " (decorrelated)"; }
+  if (/^dq_/.test(k)) { pre = "Δ quarter "; k = k.slice(3); } else if (/^dy_/.test(k)) { pre = "Δ year "; k = k.slice(3); }
+  else if (k.startsWith("d_")) { pre = "Δ "; k = k.slice(2); } else if (k.startsWith("s_")) { pre = "surprise "; k = k.slice(2); }
+  return pre + (NAMES[k] ?? k.replace(/_/g, " "));
+};
 
 function factorOf(f: string) {
   const m = f.match(/(accounting|finance|international|legal|management|marketing|operations|technology)_prob/);
@@ -37,23 +52,34 @@ export function Robustness() {
   const vol = mo.vol_prediction_dev.filter((x) => x.spec === "with_controls" && factorOf(String(x.signal)));
   return (
     <Section id="robustness" title="Robustness and overfitting checks">
+      <div className="table-wrap">
+        <table>
+          <caption>Primary strategy by subperiod, net of 25 bps. Out-of-sample forecasts start in 2014.</caption>
+          <thead><tr><th>Period</th><th>Months</th><th>Ann. mean</th><th>Sharpe</th><th>t</th><th>FF5+Mom α / yr</th><th>α t</th></tr></thead>
+          <tbody>{r.subperiods.map((x) => (
+            <tr key={String(x.period)}><td>{x.period as string}</td><td>{x.months as number}</td><td>{pct(x.ann_mean as number)}</td><td>{fx(x.sharpe as number)}</td>
+              <td>{fx(x.t_mean as number)}</td><td>{pct(x.alpha_ann as number)}</td><td>{fx(x.t_alpha as number)}</td></tr>))}
+          </tbody>
+        </table>
+      </div>
       <div className="cols-2">
         <div className="table-wrap">
           <table>
-            <caption>Primary strategy by subperiod, net of 25 bps.</caption>
-            <thead><tr><th>Period</th><th>Months</th><th>Ann. mean</th><th>Sharpe</th><th>t</th><th>FF5+Mom α t</th></tr></thead>
-            <tbody>{r.subperiods.map((x) => (
-              <tr key={String(x.period)}><td>{x.period as string}</td><td>{x.months as number}</td><td>{pct(x.ann_mean as number)}</td><td>{fx(x.sharpe as number)}</td><td>{fx(x.t_mean as number)}</td><td>{fx(x.t_alpha as number)}</td></tr>))}
+            <caption>By size tercile (equal-weighted quintile long-short, gross), development window.</caption>
+            <thead><tr><th>Size</th><th>Names / mo</th><th>Ann. mean</th><th>Sharpe</th><th>Mean IC</th></tr></thead>
+            <tbody>{r.size_buckets.map((x) => (
+              <tr key={String(x.bucket)}><td>{cap(String(x.bucket))}</td><td>{fx(x.names_per_month as number, 0)}</td><td>{pct(x.ls_q5_ew_ann as number)}</td><td>{fx(x.sharpe as number)}</td><td>{fx(x.ic_mean as number, 4)}</td></tr>))}
             </tbody>
           </table>
         </div>
         <div className="table-wrap">
           <table>
-            <caption>By size tercile (equal-weighted quintile long-short, gross) and mean IC.</caption>
-            <thead><tr><th>Size</th><th>Names / mo</th><th>Ann. mean</th><th>Sharpe</th><th>Mean IC</th></tr></thead>
-            <tbody>{r.size_buckets.map((x) => (
-              <tr key={String(x.bucket)}><td>{cap(String(x.bucket))}</td><td>{fx(x.names_per_month as number, 0)}</td><td>{pct(x.ls_q5_ew_ann as number)}</td><td>{fx(x.sharpe as number)}</td><td>{fx(x.ic_mean as number, 4)}</td></tr>))}
-            </tbody>
+            <caption>Extended sample from 2006 (equal-weighted decile long-short on single signals, no size data, survivor-heavy): the 2008–2009 crisis.</caption>
+            <thead><tr><th>Signal</th><th>Sharpe 2006–21</th><th>Return 2008–09</th></tr></thead>
+            <tbody>{Object.entries(r.extended_ew).map(([k, v]) => {
+              const c = v.cum, i0 = c.x.indexOf("2007-12"), i1 = c.x.indexOf("2009-12");
+              return (<tr key={k}><td>{featureLabel(k)}</td><td>{fx(v.stats.sharpe)}</td><td>{i0 >= 0 && i1 >= 0 ? pct(c.y[i1] / c.y[i0] - 1) : "–"}</td></tr>);
+            })}</tbody>
           </table>
         </div>
       </div>
@@ -61,9 +87,9 @@ export function Robustness() {
         <figure>
           <Plot label="Placebo distribution of long-short Sharpe ratios from shuffled forecasts" height={250}
             data={[{ type: "histogram", x: r.placebo_null_sharpes, nbinsx: 40, marker: { color: ink3 }, name: "shuffled" }]}
-            layout={{ margin: { l: 44, r: 8, t: 8, b: 36 }, showlegend: false, bargap: 0.05,
+            layout={{ margin: { l: 44, r: 8, t: 8, b: 56 }, showlegend: false, bargap: 0.05,
               shapes: [{ type: "line", x0: r.placebo_real_sharpe, x1: r.placebo_real_sharpe, yref: "paper", y0: 0, y1: 1, line: { color: amber, width: 2.5 } }],
-              xaxis: { title: { text: "annualised Sharpe, equal-weighted decile long-short" } } }} />
+              xaxis: { title: { text: "annual Sharpe (EW deciles)" } } }} />
           <figcaption><b>Placebo.</b> {s.placebo.n_draws} reshuffles of the forecast within each month (grey) against the real forecast
             (line): p = {fx(s.placebo.p_value_sharpe, 3)}. Retraining on shuffled labels gives a mean IC of {fx(s.shuffled_label.ic_mean, 4)}.</figcaption>
         </figure>
@@ -88,7 +114,7 @@ export function Robustness() {
         <Plot label="Fama-MacBeth t-statistics of each risk factor predicting next-year volatility" height={280}
           data={[{ type: "bar", orientation: "h", y: vol.map((x) => cap(factorOf(String(x.signal))!)), x: vol.map((x) => x.t_nw as number),
             marker: { color: vol.map((x) => factorColor(factorOf(String(x.signal))!)) }, hovertemplate: "%{y}: t = %{x:.1f}<extra></extra>" }]}
-          layout={{ margin: { l: 104, r: 16, t: 8, b: 40 }, xaxis: { title: { text: "t-statistic, slope on next-12-month volatility rank (with controls)" }, zeroline: true, zerolinecolor: ink },
+          layout={{ margin: { l: 104, r: 16, t: 8, b: 40 }, xaxis: { title: { text: "t-statistic (with controls)" }, zeroline: true, zerolinecolor: ink },
             shapes: [-3, 3].map((v) => ({ type: "line", x0: v, x1: v, yref: "paper", y0: 0, y1: 1, line: { color: ink3, dash: "dot", width: 1 } })) }} />
         <figcaption><b>Risk text forecasts volatility, in both directions.</b> Monthly cross-sectional regressions of realised volatility
           over the next twelve months on each factor's rank, controlling for past volatility, size, beta and seven other characteristics
@@ -104,7 +130,8 @@ export function Explain() {
   if (!sh) return <p className="loading">Loading explanations…</p>;
   const ink3 = cssVar("--ink-3"), teal = cssVar("--teal");
   const imp = sh.importance.slice(0, 15).reverse();
-  const col = (f: string) => factorOf(f) ? factorColor(factorOf(f)!) : (String(f).includes("mkt") ? cssVar("--amber") : ink3);
+  const group = Object.fromEntries(sh.importance.map((r) => [String(r.feature), String(r.group)]));
+  const col = (f: string) => factorOf(f) ? factorColor(factorOf(f)!) : group[f] === "marketing" ? cssVar("--amber") : group[f] === "interactions" ? teal : ink3;
   const totals = Object.entries(sh.groups); const sum = totals.reduce((a, [, v]) => a + v, 0);
   return (
     <Section id="explain" title="What the model uses">
@@ -115,8 +142,8 @@ export function Explain() {
           <Plot label="Top 15 features by mean absolute SHAP value" height={440}
             data={[{ type: "bar", orientation: "h", y: imp.map((r) => featureLabel(String(r.feature))), x: imp.map((r) => r.mean_abs_shap as number),
               marker: { color: imp.map((r) => col(String(r.feature))) }, hovertemplate: "%{y}: %{x:.4f}<extra></extra>" }]}
-            layout={{ margin: { l: 170, r: 8, t: 8, b: 36 }, xaxis: { title: { text: "mean |SHAP|" } } }} />
-          <figcaption><b>Feature importance.</b> Risk factors in their identity colours, marketing in amber, controls in grey.</figcaption>
+            layout={{ margin: { l: 230, r: 12, t: 8, b: 44 }, xaxis: { title: { text: "mean |SHAP|" }, nticks: 4, tickangle: 0, tickformat: ".3f" } }} />
+          <figcaption><b>Feature importance.</b> Risk factors in their identity colours, earnings-call marketing in amber, interactions in teal, controls in grey.</figcaption>
         </figure>
         <div>
           <div className="table-wrap"><table>
@@ -131,9 +158,11 @@ export function Explain() {
           <figure key={f}>
             <Plot label={`SHAP dependence for ${featureLabel(f)}`} height={220}
               data={[{ type: "scatter", mode: "lines+markers", x: d.x, y: d.shap, line: { color: factorOf(f) ? factorColor(factorOf(f)!) : teal, width: 2 }, marker: { size: 5 } }]}
-              layout={{ margin: { l: 56, r: 8, t: 8, b: 36 }, xaxis: { title: { text: `${featureLabel(f)} (centred rank)` } }, yaxis: { title: { text: "SHAP" } } }} />
+              layout={{ margin: { l: 72, r: 8, t: 8, b: 44 }, xaxis: { title: { text: `${featureLabel(f)} (centred rank)` } }, yaxis: { title: { text: "SHAP value" } } }} />
           </figure>))}
       </div>
+      <p className="small prose">Dependence plots: the average SHAP contribution across each feature's cross-sectional range (20 bins).
+        A falling line means higher values of the feature lower the predicted return rank.</p>
     </Section>
   );
 }

@@ -9,6 +9,22 @@ A point-in-time, walk-forward study combining two published text datasets with f
 The pipeline builds a monthly stock panel in which every number is public before the month begins. It tests pre-registered hypotheses with portfolio sorts and Fama-MacBeth regressions, climbs a model ladder (elastic net, LightGBM, XGBoost, neural net, ensemble), and backtests a long-short strategy with costs, factor alphas, robustness, placebo and overfitting checks, and SHAP. The final 41 months (2022-01 → 2025-05) were locked until the design was frozen.
 
 <!-- HEADLINE-RESULTS -->
+**Headline results** (generated from `results/json` by `src/viz/export.py`):
+
+| Measure | Result |
+|---|---|
+| Sample | 2,247 firms, 205,574 stock-months, median 1118 stocks per month (2010-01 to 2025-05) |
+| Forecast quality (ensemble, all features): mean monthly rank IC | 0.041 (t = 3.6) in 2014–2021; 0.060 (t = 4.5) in the locked 2022-01 to 2025-05 test |
+| Text over controls only (paired IC difference, 2014–2021) | 0.0066 (t = 1.6); test-window controls-only IC 0.064 |
+| Primary strategy (capped-VW decile L/S, net of 25 bps): Sharpe | −0.12 (2014–2021); 0.51 (test) |
+| Primary strategy: FF5 + momentum alpha, net | −4.9% a year (t = −0.9); test −4.6% a year (t = −0.8) |
+| Turnover and breadth | buys plus sells in both legs equal 214% of one leg's capital per month (about 54% one-way per leg); 116 names per leg |
+| Multiple testing | deflated Sharpe probability 0.11 over 99 development specs; probability of backtest overfitting 0.88 |
+| Placebo and shuffled labels | IC p = 0.000, Sharpe p = 0.042; shuffled-label IC 0.0073 |
+| Risk text predicts volatility | 5 of 8 risk factors predict next-year volatility with a t-statistic of 3 or more in size after controls (2 higher, 3 lower) |
+
+**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant alpha after standard factors and costs. The text adds little beyond known characteristics, while disclosed risk does predict future volatility.
+<!-- /HEADLINE-RESULTS -->
 
 ## How to run
 

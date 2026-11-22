@@ -1,8 +1,8 @@
 {
- "unlocked": false,
+ "unlocked": true,
  "test_window": [
   "2022-01",
-  "2025-06"
+  "2025-05"
  ],
  "dev_window": [
   "2014-01",
@@ -10,72 +10,82 @@
  ],
  "n_filings": 131920,
  "n_firms_scores": 16959,
- "n_stock_months": 211189,
- "n_firms_panel": 2359,
- "median_names_per_month": 1131.5,
+ "n_stock_months": 205574,
+ "n_firms_panel": 2247,
+ "median_names_per_month": 1118.0,
  "primary": {
   "label": "Ensemble, all features, value-weighted top-minus-bottom decile, net of 25 bps",
-  "dev_ic_mean": 0.0446178607221101,
-  "dev_ic_t": 4.347553469854845,
-  "dev_net_sharpe": -0.22855218017027007,
-  "dev_net_ann_mean": -0.044483498042457645,
-  "dev_net_alpha_ann": -0.09230500657760163,
-  "dev_net_t_alpha": -1.665875604684267,
-  "turnover_m": 2.0053750141144793,
-  "names_per_leg": 118.19791666666667
+  "dev_ic_mean": 0.0411918031607191,
+  "dev_ic_t": 3.640520075542949,
+  "dev_net_sharpe": -0.12402686009566209,
+  "dev_net_ann_mean": -0.0211062653333384,
+  "dev_net_alpha_ann": -0.04907176240785507,
+  "dev_net_t_alpha": -0.8520623129732824,
+  "turnover_m": 2.1407206732602795,
+  "names_per_leg": 116.33333333333333,
+  "test_net_sharpe": 0.5149232720466492,
+  "test_net_ann_mean": 0.08885160988016523,
+  "test_months": 41,
+  "test_t_mean": 1.456912387581019,
+  "test_gross_sharpe": 0.8012062405735928,
+  "test_net_alpha_ann": -0.04637894783979689,
+  "test_net_t_alpha": -0.8302208216168846,
+  "test_ic_mean": 0.059871581657500776,
+  "test_ic_t": 4.521026966538157,
+  "test_ic_controls": 0.06437631622998645
  },
  "dsr": {
-  "sr0_monthly": 0.18906569852808464,
-  "n_trials": 80,
-  "dsr": 0.005148929049532271
+  "sr0_monthly": 0.1996623081376401,
+  "n_trials": 99,
+  "dsr": 0.10835617271349646
  },
  "pbo": {
-  "pbo": 0.8717171717171717,
+  "pbo": 0.8801087801087801,
   "n_splits": 12870,
-  "n_strategies": 19,
-  "logit_median": -1.3862943611198906
+  "n_strategies": 20,
+  "logit_median": -1.4469189829363254
  },
  "placebo": {
-  "real_sharpe": 0.45780280136084645,
-  "null_sharpe_mean": -0.046131474037581444,
-  "null_sharpe_p95": 0.5070228461513641,
-  "p_value_sharpe": 0.064,
-  "real_ic": 0.04461786072211019,
-  "null_ic_p95": 0.0047402220261642,
+  "real_sharpe": 0.6967695098371938,
+  "null_sharpe_mean": 0.0318881114797276,
+  "null_sharpe_p95": 0.6428687183967482,
+  "p_value_sharpe": 0.042,
+  "real_ic": 0.041191803160719166,
+  "null_ic_p95": 0.005336587495184718,
   "p_value_ic": 0.0,
   "n_draws": 500
  },
  "shuffled_label": {
-  "ic_mean": 0.002176331583019955,
-  "ic_std": 0.039153015512421965,
-  "ic_ir": 0.19255308060302134,
-  "ic_t_nw": 0.6328959774868608,
-  "ic_pos_months": 0.5104166666666666,
+  "ic_mean": 0.007320258301368795,
+  "ic_std": 0.048377394206790506,
+  "ic_ir": 0.5241728915080299,
+  "ic_t_nw": 1.3683725813376713,
+  "ic_pos_months": 0.59375,
   "n_months": 96,
-  "oos_r2_rank": -7.639965465044973e-05,
-  "hit_rate": 0.4998053510758777
+  "oos_r2_rank": 1.83976101683081e-05,
+  "hit_rate": 0.5016851963366079
  },
  "ic_increment": {
   "ens": {
-   "ic_all": 0.04461786072211019,
-   "ic_controls": 0.04087406073594014,
-   "diff_mean": 0.003743799986170052,
-   "diff_t_nw": 0.8119864518083203,
+   "ic_all": 0.041191803160719166,
+   "ic_controls": 0.034630352767149826,
+   "diff_mean": 0.006561450393569338,
+   "diff_t_nw": 1.582196737815575,
    "months_text_better": 0.5625
   },
   "enet": {
-   "ic_all": 0.04743090458325315,
-   "ic_controls": 0.04310529638126422,
-   "diff_mean": 0.008009316434683326,
-   "diff_t_nw": 2.072086476888507,
-   "months_text_better": 0.5694444444444444
+   "ic_all": 0.03828154281151469,
+   "ic_controls": 0.02930540466568828,
+   "diff_mean": 0.008976138145826405,
+   "diff_t_nw": 1.819537170081916,
+   "months_text_better": 0.5833333333333334
   },
   "lgbm": {
-   "ic_all": 0.04830438503128596,
-   "ic_controls": 0.03899089124246207,
-   "diff_mean": 0.009313493788823896,
-   "diff_t_nw": 2.221556967852299,
-   "months_text_better": 0.6145833333333334
+   "ic_all": 0.040916092073797455,
+   "ic_controls": 0.03163157827388318,
+   "diff_mean": 0.009284513799914275,
+   "diff_t_nw": 2.0527156401991404,
+   "months_text_better": 0.5833333333333334
   }
  }
 }

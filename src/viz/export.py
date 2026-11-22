@@ -317,3 +317,58 @@ def export_json():
                        for k, g in sh["dependence"].items()},
         "model": sh["chosen"],
     })
+
+
+def write_readme_headline():
+    """Regenerate the README headline block from results/json (so README numbers always come from code)."""
+    import re
+    J = path("results") / "json"
+    sm = json.loads((J / "summary.json").read_text(encoding="utf-8"))
+    mo = json.loads((J / "models.json").read_text(encoding="utf-8"))
+    p = sm["primary"]
+
+    def f(v, d=2):
+        return "n/a" if v is None else f"{v:.{d}f}".replace("-", "−")
+
+    vol = [r for r in mo["vol_prediction_dev"] if r["spec"] == "with_controls" and r["signal"].endswith("_prob")
+           and "nonop" not in r["signal"]]
+    up = sum(r["t_nw"] >= 3 for r in vol)
+    down = sum(r["t_nw"] <= -3 for r in vol)
+    inc = sm["ic_increment"]["ens"]
+    ta = p.get("test_net_alpha_ann")
+    rows = [
+        ("Sample", f"{sm['n_firms_panel']:,} firms, {sm['n_stock_months']:,} stock-months, "
+                   f"median {sm['median_names_per_month']:.0f} stocks per month (2010-01 to 2025-05)"),
+        ("Forecast quality (ensemble, all features): mean monthly rank IC",
+         f"{f(p['dev_ic_mean'], 3)} (t = {f(p['dev_ic_t'], 1)}) in 2014–2021; "
+         f"{f(p.get('test_ic_mean'), 3)} (t = {f(p.get('test_ic_t'), 1)}) in the locked 2022-01 to 2025-05 test"),
+        ("Text over controls only (paired IC difference, 2014–2021)",
+         f"{f(inc['diff_mean'], 4)} (t = {f(inc['diff_t_nw'], 1)}); test-window controls-only IC {f(p.get('test_ic_controls'), 3)}"),
+        ("Primary strategy (capped-VW decile L/S, net of 25 bps): Sharpe",
+         f"{f(p['dev_net_sharpe'])} (2014–2021); {f(p.get('test_net_sharpe'))} (test)"),
+        ("Primary strategy: FF5 + momentum alpha, net",
+         f"{f(p['dev_net_alpha_ann'] * 100, 1)}% a year (t = {f(p['dev_net_t_alpha'], 1)}); "
+         f"test {f(None if ta is None else ta * 100, 1)}% a year (t = {f(p.get('test_net_t_alpha'), 1)})"),
+        ("Turnover and breadth", f"buys plus sells in both legs equal {p['turnover_m'] * 100:.0f}% of one leg's capital per month "
+                                 f"(about {p['turnover_m'] * 25:.0f}% one-way per leg); {p['names_per_leg']:.0f} names per leg"),
+        ("Multiple testing", f"deflated Sharpe probability {f(sm['dsr']['dsr'])} over {sm['dsr']['n_trials']} development specs; "
+                             f"probability of backtest overfitting {f(sm['pbo']['pbo'])}"),
+        ("Placebo and shuffled labels", f"IC p = {f(sm['placebo']['p_value_ic'], 3)}, Sharpe p = {f(sm['placebo']['p_value_sharpe'], 3)}; "
+                                        f"shuffled-label IC {f(sm['shuffled_label']['ic_mean'], 4)}"),
+        ("Risk text predicts volatility", f"{up + down} of 8 risk factors predict next-year volatility with a t-statistic of 3 or more in size after controls "
+                                          f"({up} higher, {down} lower)"),
+    ]
+    lines = ["**Headline results** (generated from `results/json` by `src/viz/export.py`):", "", "| Measure | Result |", "|---|---|"]
+    lines += [f"| {a} | {b} |" for a, b in rows]
+    lines += ["", "**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant "
+                  "alpha after standard factors and costs. The text adds little beyond known characteristics, while disclosed risk "
+                  "does predict future volatility.", ""]
+    block = "\n".join(lines)
+    readme = path("results").parent / "README.md"
+    txt = readme.read_text(encoding="utf-8")
+    start, end = "<!-- HEADLINE-RESULTS -->", "<!-- /HEADLINE-RESULTS -->"
+    if end in txt:
+        txt = txt[:txt.index(start)] + start + "\n" + block + end + txt[txt.index(end) + len(end):]
+    else:
+        txt = txt.replace(start, start + "\n" + block + end)
+    readme.write_text(txt, encoding="utf-8")

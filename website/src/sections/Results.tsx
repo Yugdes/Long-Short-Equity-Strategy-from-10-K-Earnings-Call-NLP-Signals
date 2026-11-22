@@ -135,6 +135,15 @@ export function SingleSignals() {
   );
 }
 
+/** Drawdown narrative computed from the exported series (descriptive window 2019-12 to 2021-06 chosen after inspecting the chart). */
+function ddText(s: Strategy) {
+  const y = s.drawdown.y, x = s.drawdown.x, i = y.indexOf(Math.min(...y));
+  const cum = s.cum_net25, peakI = cum.y.slice(0, cum.x.indexOf(x[i]) + 1).reduce((b, v, k, a) => (v > a[b] ? k : b), 0);
+  const g = (ser: Series, a: string, b: string) => ser.y[ser.x.indexOf(b)] / ser.y[ser.x.indexOf(a)] - 1;
+  return `Its deepest drawdown, ${pct(y[i], 0)}, ran from ${cum.x[peakI]} to ${x[i]}. Most of it came between 2019-12 and 2021-06, when the short leg
+    (the stocks the model ranked lowest) gained ${pct(g(s.cum_short_ex, "2019-12", "2021-06"), 0)} in excess of T-bills against ${pct(g(s.cum_long_ex, "2019-12", "2021-06"), 0)} for the long leg.`;
+}
+
 export function Results() {
   const s = useData<Strategy>("strategy");
   const [bars, setBars] = useState("d10_vw");
@@ -158,7 +167,8 @@ export function Results() {
             { x: s.cum_market_ex.x, y: s.cum_market_ex.y, name: "Market, excess", line: { color: ink3, width: 1.4, dash: "dash" } },
           ].map((t) => ({ ...t, type: "scatter", mode: "lines", hovertemplate: "%{x}: %{y:.2f}<extra>%{fullData.name}</extra>" }))}
           layout={{ yaxis: { type: "log", title: { text: "growth of $1 (log)" } }, shapes }} />
-        <figcaption><b>Growth of a dollar.</b> The long and short legs are shown separately as excess returns; the strategy earns their difference.</figcaption>
+        <figcaption><b>Growth of a dollar.</b> The long and short legs are shown separately as excess returns; the strategy earns their
+          difference. {ddText(s)}</figcaption>
       </figure>
       <div className="cols-2">
         <figure>
@@ -193,7 +203,7 @@ export function Results() {
       <h3>Model ladder</h3>
       <Ladder />
       <h3>Strategy variants</h3>
-      <VariantTable rows={s.variants} caption="Development window, 2014–2021. All construction variants over the same months. Turnover is the monthly fraction of capital traded across both legs; break-even is the one-way cost that would erase the gross return." />
+      <VariantTable rows={s.variants} caption="Development window, 2014–2021. All construction variants over the same months. Turnover is buys plus sells in both legs as a share of one leg's capital per month (divide by four for one-way turnover per leg); break-even is the one-way cost that would erase the gross return." />
       {s.variants_test && <VariantTable rows={s.variants_test} caption={`Locked test window, ${s.test_start} to ${s.test_end}, run once after the design was frozen.`} />}
       <p className="small prose">Net columns are Sharpe ratios after the stated one-way cost on every dollar traded.</p>
       <h3>Factor alphas and legs</h3>

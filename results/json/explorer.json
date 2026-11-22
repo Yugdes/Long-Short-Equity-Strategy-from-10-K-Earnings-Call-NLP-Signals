@@ -474,7 +474,7 @@
    "filings": 5815,
    "nonempty_item1a": 371,
    "current_sec_ticker": 1515,
-   "yahoo_prices": 1505,
+   "yahoo_prices": 1512,
    "in_extended_universe": 24,
    "in_primary_universe": 0,
    "pct_primary_of_filings": 0.0
@@ -484,8 +484,8 @@
    "filings": 5748,
    "nonempty_item1a": 5469,
    "current_sec_ticker": 1585,
-   "yahoo_prices": 1572,
-   "in_extended_universe": 893,
+   "yahoo_prices": 1581,
+   "in_extended_universe": 894,
    "in_primary_universe": 0,
    "pct_primary_of_filings": 0.0
   },
@@ -494,7 +494,7 @@
    "filings": 5741,
    "nonempty_item1a": 5639,
    "current_sec_ticker": 1664,
-   "yahoo_prices": 1651,
+   "yahoo_prices": 1660,
    "in_extended_universe": 974,
    "in_primary_universe": 0,
    "pct_primary_of_filings": 0.0
@@ -504,8 +504,8 @@
    "filings": 6321,
    "nonempty_item1a": 6088,
    "current_sec_ticker": 1829,
-   "yahoo_prices": 1816,
-   "in_extended_universe": 974,
+   "yahoo_prices": 1825,
+   "in_extended_universe": 973,
    "in_primary_universe": 0,
    "pct_primary_of_filings": 0.0
   },
@@ -514,8 +514,8 @@
    "filings": 7917,
    "nonempty_item1a": 7383,
    "current_sec_ticker": 2154,
-   "yahoo_prices": 2136,
-   "in_extended_universe": 984,
+   "yahoo_prices": 2146,
+   "in_extended_universe": 975,
    "in_primary_universe": 229,
    "pct_primary_of_filings": 0.029
   },
@@ -524,9 +524,9 @@
    "filings": 7857,
    "nonempty_item1a": 7388,
    "current_sec_ticker": 2208,
-   "yahoo_prices": 2187,
-   "in_extended_universe": 1047,
-   "in_primary_universe": 519,
+   "yahoo_prices": 2199,
+   "in_extended_universe": 1035,
+   "in_primary_universe": 521,
    "pct_primary_of_filings": 0.066
   },
   {
@@ -534,140 +534,140 @@
    "filings": 7922,
    "nonempty_item1a": 7516,
    "current_sec_ticker": 2300,
-   "yahoo_prices": 2277,
-   "in_extended_universe": 1081,
-   "in_primary_universe": 875,
-   "pct_primary_of_filings": 0.11
+   "yahoo_prices": 2291,
+   "in_extended_universe": 1068,
+   "in_primary_universe": 876,
+   "pct_primary_of_filings": 0.111
   },
   {
    "file_year": 2012,
    "filings": 7709,
    "nonempty_item1a": 7374,
    "current_sec_ticker": 2359,
-   "yahoo_prices": 2337,
-   "in_extended_universe": 1112,
-   "in_primary_universe": 929,
-   "pct_primary_of_filings": 0.121
+   "yahoo_prices": 2351,
+   "in_extended_universe": 1096,
+   "in_primary_universe": 926,
+   "pct_primary_of_filings": 0.12
   },
   {
    "file_year": 2013,
    "filings": 7310,
    "nonempty_item1a": 7047,
    "current_sec_ticker": 2427,
-   "yahoo_prices": 2403,
-   "in_extended_universe": 1217,
-   "in_primary_universe": 1001,
-   "pct_primary_of_filings": 0.137
+   "yahoo_prices": 2418,
+   "in_extended_universe": 1196,
+   "in_primary_universe": 994,
+   "pct_primary_of_filings": 0.136
   },
   {
    "file_year": 2014,
    "filings": 7193,
    "nonempty_item1a": 6958,
    "current_sec_ticker": 2583,
-   "yahoo_prices": 2559,
-   "in_extended_universe": 1298,
-   "in_primary_universe": 1067,
-   "pct_primary_of_filings": 0.148
+   "yahoo_prices": 2574,
+   "in_extended_universe": 1274,
+   "in_primary_universe": 1058,
+   "pct_primary_of_filings": 0.147
   },
   {
    "file_year": 2015,
    "filings": 7034,
    "nonempty_item1a": 6833,
    "current_sec_ticker": 2722,
-   "yahoo_prices": 2696,
-   "in_extended_universe": 1373,
-   "in_primary_universe": 1113,
-   "pct_primary_of_filings": 0.158
+   "yahoo_prices": 2712,
+   "in_extended_universe": 1346,
+   "in_primary_universe": 1101,
+   "pct_primary_of_filings": 0.157
   },
   {
    "file_year": 2016,
    "filings": 6574,
    "nonempty_item1a": 6407,
    "current_sec_ticker": 2822,
-   "yahoo_prices": 2793,
-   "in_extended_universe": 1444,
-   "in_primary_universe": 1169,
-   "pct_primary_of_filings": 0.178
+   "yahoo_prices": 2809,
+   "in_extended_universe": 1416,
+   "in_primary_universe": 1152,
+   "pct_primary_of_filings": 0.175
   },
   {
    "file_year": 2017,
    "filings": 6256,
    "nonempty_item1a": 6134,
    "current_sec_ticker": 2940,
-   "yahoo_prices": 2909,
-   "in_extended_universe": 1518,
-   "in_primary_universe": 1231,
-   "pct_primary_of_filings": 0.197
+   "yahoo_prices": 2925,
+   "in_extended_universe": 1477,
+   "in_primary_universe": 1210,
+   "pct_primary_of_filings": 0.193
   },
   {
    "file_year": 2018,
    "filings": 6046,
    "nonempty_item1a": 5941,
    "current_sec_ticker": 3096,
-   "yahoo_prices": 3063,
-   "in_extended_universe": 1625,
-   "in_primary_universe": 1309,
-   "pct_primary_of_filings": 0.217
+   "yahoo_prices": 3082,
+   "in_extended_universe": 1585,
+   "in_primary_universe": 1282,
+   "pct_primary_of_filings": 0.212
   },
   {
    "file_year": 2019,
    "filings": 5896,
    "nonempty_item1a": 5802,
    "current_sec_ticker": 3235,
-   "yahoo_prices": 3197,
-   "in_extended_universe": 1709,
-   "in_primary_universe": 1387,
-   "pct_primary_of_filings": 0.235
+   "yahoo_prices": 3217,
+   "in_extended_universe": 1664,
+   "in_primary_universe": 1356,
+   "pct_primary_of_filings": 0.23
   },
   {
    "file_year": 2020,
    "filings": 5691,
    "nonempty_item1a": 5605,
    "current_sec_ticker": 3387,
-   "yahoo_prices": 3349,
-   "in_extended_universe": 1907,
-   "in_primary_universe": 1552,
-   "pct_primary_of_filings": 0.273
+   "yahoo_prices": 3370,
+   "in_extended_universe": 1859,
+   "in_primary_universe": 1512,
+   "pct_primary_of_filings": 0.266
   },
   {
    "file_year": 2021,
    "filings": 6053,
    "nonempty_item1a": 5969,
    "current_sec_ticker": 3697,
-   "yahoo_prices": 3654,
-   "in_extended_universe": 2138,
-   "in_primary_universe": 1733,
-   "pct_primary_of_filings": 0.286
+   "yahoo_prices": 3675,
+   "in_extended_universe": 2068,
+   "in_primary_universe": 1681,
+   "pct_primary_of_filings": 0.278
   },
   {
    "file_year": 2022,
    "filings": 6710,
    "nonempty_item1a": 6649,
    "current_sec_ticker": 4106,
-   "yahoo_prices": 4058,
-   "in_extended_universe": 2235,
-   "in_primary_universe": 1788,
-   "pct_primary_of_filings": 0.266
+   "yahoo_prices": 4082,
+   "in_extended_universe": 2129,
+   "in_primary_universe": 1709,
+   "pct_primary_of_filings": 0.255
   },
   {
    "file_year": 2023,
    "filings": 6306,
    "nonempty_item1a": 6247,
    "current_sec_ticker": 4245,
-   "yahoo_prices": 4193,
-   "in_extended_universe": 2272,
-   "in_primary_universe": 1805,
-   "pct_primary_of_filings": 0.286
+   "yahoo_prices": 4221,
+   "in_extended_universe": 2147,
+   "in_primary_universe": 1700,
+   "pct_primary_of_filings": 0.27
   },
   {
    "file_year": 2024,
    "filings": 5818,
    "nonempty_item1a": 5777,
    "current_sec_ticker": 4385,
-   "yahoo_prices": 4314,
-   "in_extended_universe": 2375,
-   "in_primary_universe": 1899,
-   "pct_primary_of_filings": 0.326
+   "yahoo_prices": 4353,
+   "in_extended_universe": 2220,
+   "in_primary_universe": 1765,
+   "pct_primary_of_filings": 0.303
   },
   {
    "file_year": 2025,
@@ -675,7 +675,7 @@
    "nonempty_item1a": 3,
    "current_sec_ticker": 1,
    "yahoo_prices": 1,
-   "in_extended_universe": 1,
+   "in_extended_universe": 0,
    "in_primary_universe": 0,
    "pct_primary_of_filings": 0.0
   }

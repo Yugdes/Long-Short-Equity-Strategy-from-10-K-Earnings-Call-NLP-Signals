@@ -81,8 +81,9 @@ def stage_analysis(force):
 
 
 def stage_export(force):
-    from src.viz.export import export_json
+    from src.viz.export import export_json, write_readme_headline
     export_json()
+    write_readme_headline()
 
 
 def stage_notebooks(force):

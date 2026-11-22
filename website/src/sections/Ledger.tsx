@@ -23,7 +23,9 @@ export function Ledger() {
   const h1a = sorts("H1"); const h1Abs = Math.max(...h1a.map((r) => Math.abs(r.t_alpha as number)));
   const vol = m.vol_prediction_dev.filter((r) => r.spec === "with_controls" && /_(accounting|finance|international|legal|management|marketing|operations|technology)_prob$/.test(String(r.signal)));
   const volSig = vol.filter((r) => Math.abs(r.t_nw as number) >= 3).length;
-  const h1v: "yes" | "mixed" | "no" = volSig >= 4 && h1Abs < 3 ? "yes" : volSig >= 1 ? "mixed" : "no";
+  const volUp = vol.filter((r) => (r.t_nw as number) >= 3).length, volDown = vol.filter((r) => (r.t_nw as number) <= -3).length;
+  // pre-registered sign was "+": significant effects in both directions make it only partial support
+  const h1v: "yes" | "mixed" | "no" = volUp >= 4 && volDown === 0 && h1Abs < 3 ? "yes" : volSig >= 1 ? "mixed" : "no";
   // H2: increases predict lower returns (negative)
   const h2 = [...sorts("H2"), ...fm("H2").map((r) => ({ ...r, t_alpha: r.t_nw }))];
   const h2best = maxBy(h2, "t_alpha", -1);
@@ -40,13 +42,13 @@ export function Ledger() {
 
   const items = [
     { id: "H1", claim: "Disclosed risk levels are priced as risk, not mispricing: they predict volatility but earn no alpha.", v: h1v,
-      out: `${volSig} of 8 risk factors predict next-year volatility with |t| ≥ 3 after controls; the largest level-sort alpha has |t| = ${fx(h1Abs)}.` },
+      out: `No level sort earns alpha (largest |t| = ${fx(h1Abs)}). ${volSig} of 8 risk factors predict next-year volatility with |t| ≥ 3 after controls, but in both directions: ${volUp} higher, ${volDown} lower, against the predicted uniformly higher.` },
     { id: "H2", claim: "Firms whose disclosed risk rises underperform afterwards (the Lazy Prices logic).", v: verdict(h2best.t_alpha as number, -1),
       out: `Most negative statistic across change and surprise signals: t = ${fx(h2best.t_alpha as number)} (${String(h2best.signal).replace("r_", "")}).` },
     { id: "H3", claim: "Marketing emphasis on earnings calls predicts higher returns.", v: verdict(h3best.t_alpha as number, 1),
       out: `Largest statistic across marketing levels and changes: t = ${fx(h3best.t_alpha as number)} (${String(h3best.signal).replace("r_", "")}).` },
     { id: "H4", claim: "Risk × marketing interactions carry information neither carries alone.", v: verdict(h4best.t_nw as number, 1),
-      out: `Largest Fama-MacBeth interaction slope: t = ${fx(h4best.t_nw as number)} (${String(h4best.interaction).replace("x_", "")}); adding interaction features changes model IC by ${d4.map((x) => (x >= 0 ? "+" : "") + x.toFixed(4)).join(" (elastic net) and ")} (LightGBM).` },
+      out: `Largest Fama-MacBeth interaction slope: t = ${fx(h4best.t_nw as number)} (${String(h4best.interaction).replace("x_", "")}); adding interaction features changes model IC by ${d4.map((x) => (x >= 0 ? "+" : "") + fx(x, 4)).join(" (elastic net) and ")} (LightGBM).` },
     { id: "H5", claim: "A machine-learning combination of text and controls beats controls alone and survives costs.", v: h5v as "yes" | "mixed" | "no",
       out: `Ensemble IC ${fx(inc.ic_all as number, 4)} with text vs ${fx(inc.ic_controls as number, 4)} controls only: difference t = ${fx(tInc)}; primary strategy net-of-cost FF5+Mom alpha t = ${fx(tNet)}.` },
   ];

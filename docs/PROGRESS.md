@@ -11,10 +11,10 @@
 | 2 Point-in-time panel | ✅ done 2026-11-22 | data/processed/panel.parquet (308,283 rows; 222k primary stock-months); 32 tests pass incl. no-look-ahead invariants on the real panel |
 | 3 Features | ✅ code done (src/features/signals.py, tests) | ~90 rank features in 4 groups |
 | 4 Models | ✅ dev + locked test (rerun after D-028/D-029) | results/tables/ml_summary_{dev,final}_h1.csv |
-| 5 Backtest | 🔄 analysis/export rerunning after fixes | |
-| 6 Robustness / SHAP | ⏳ | |
-| 7 Website | ⏳ | |
-| 8 Final QA | ⏳ | |
+| 5 Backtest | ✅ | results/json/strategy.json (dev + test tear sheets) |
+| 6 Robustness / SHAP | ✅ | subperiods, size, industries, alt lags, h=3, placebo, shuffled labels, DSR, PBO, SHAP, low-vol factor |
+| 7 Website | ✅ | website/ (npm run dev / build); Playwright: desktop 1440 + mobile 390 + dark, no console errors |
+| 8 Final QA | 🔄 | clean `run_all.py --from panel` succeeded end to end; leakage review done (D-029); numbers review running |
 
 ## Key numbers so far
 - Risk scores: 131,920 filings, 16,959 CIKs, filed 2005-01 → 2025-01. `FYEAR` = filing year (100%). Filing dates match an original 10-K in EDGAR for 131,917/131,920.
@@ -48,9 +48,13 @@
 - D-029: independent reviewer findings fixed (rank ensemble, sample end 2025-05, h3 embargo, cleaning rule, DSR family, continuous tear sheet, raw-ZCA robustness, time-varying survivorship caveat).
 - Corrected dev (2014–2021): ens ALL IC 0.041 (t 3.6), VW d10 gross Sharpe 0.28, FF5+Mom α t 0.37. Corrected test (2022-01–2025-05): IC 0.048–0.067, VW gross Sharpe −0.03–1.2, α t −2.5 to 1.0; text adds nothing over controls in test.
 
+## Final numbers (definitive run)
+See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), test IC 0.060 (t 4.5; controls-only 0.064). Primary net Sharpe −0.12 dev / 0.51 test; net FF5+Mom α t −0.85 / −0.83. DSR 0.11 (99 specs), PBO 0.88. Verdict: prediction yes, alpha no; text adds little beyond known characteristics; risk text predicts volatility (5/8 factors, both signs).
+
 ## Next steps
-1. `run_all.py --from analysis` (analysis → export → notebooks) is running (log data/interim/run_all_analysis.log).
-2. Then: rebuild site data, Playwright desktop/mobile/dark checks, README headline numbers, second reviewer pass on site-vs-code numbers, final commit, delete `MS 499/.playwright-mcp` (tool output folder created outside the project).
+1. Apply findings of the site-vs-code numbers reviewer.
+2. Final commit; delete `MS 499/.playwright-mcp` (Playwright tool's log folder, created outside the project).
+3. Final summary to the user.
 
 ## Session log
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.
