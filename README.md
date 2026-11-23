@@ -22,6 +22,8 @@ The pipeline builds a monthly stock panel in which every number is public before
 | Multiple testing | deflated Sharpe probability 0.08 over 123 development specs; probability of backtest overfitting 0.88 |
 | Placebo and shuffled labels | IC p = 0.000, Sharpe p = 0.042; shuffled-label IC 0.0073 |
 | Disclosed risk and future volatility | pre-registered test fails: operations risk t = 0.1, aggregate risk t = −1.0 (predicted positive); exploratory: 5 of 8 individual factors have t-statistics of 3 or more in size after controls (2 higher, 3 lower) |
+| Survivorship audit (SEC filing histories) | our prices cover 26% of once-listed 10-K filers in 2006 and 80% in 2024; the low-risk decile loses the most firms, so missing firms would have to outperform by 1.7% a month to erase the aggregate-risk spread; finance-risk language predicts bankruptcy within 3 years (t = 8.6) |
+| Replication of Astvansh & Simpson (2026), operations risk → next-year ln(COGS) | 0.289 (SE 0.107) on 34,960 XBRL firm-years vs 0.247 (0.041) in the paper; their risk interaction does not replicate (t = 0.4) |
 
 **Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant alpha after standard factors and costs, and the text adds little beyond a controls-only model. Individual disclosed risk factors do carry information about future volatility, though not in the pre-registered form.
 <!-- /HEADLINE-RESULTS -->
@@ -34,7 +36,7 @@ py -3.10 -m venv venv
 venv\Scripts\python -m pip install -r requirements-lock.txt
 
 # 2. everything, from raw data to website data (stages reuse their caches)
-venv\Scripts\python run_all.py              # download → panel → features → tests → single → ml → analysis → export → notebooks
+venv\Scripts\python run_all.py              # download → panel → features → tests → single → ml → analysis → studies → export → notebooks
 venv\Scripts\python run_all.py --from panel # rebuild every derived file from the frozen raw downloads
 venv\Scripts\python -m pytest -q            # test suite (timing / look-ahead, prices, portfolios, metrics, walk-forward)
 
@@ -62,7 +64,8 @@ src/data/                 risk.py, marketing.py (GVKEY→CIK links), sec.py (XBR
 src/features/             timing.py (release rules), characteristics.py, panel.py (point-in-time panel), signals.py
 src/models/               walkforward.py, learners.py, run_ml.py, diagnostics.py
 src/backtest/             portfolios.py, metrics.py, regressions.py, tearsheet.py
-src/evaluation/           single_signals.py, predictive.py, robustness.py, explain.py (SHAP), sanity.py, speclog.py
+src/evaluation/           single_signals.py, predictive.py, robustness.py, explain.py (SHAP), sanity.py, speclog.py,
+                          survivorship.py (SEC-history audit), event_study.py (filing-date reactions), replication.py (source paper)
 src/viz/export.py         analysis + JSON export for the website
 src/utils/                config.py, lock.py (locked-test-window guard)
 tests/                    pytest suite
@@ -74,11 +77,11 @@ docs/                     PLAN, PROGRESS, DECISIONS, DATA_AUDIT, ENVIRONMENT, RE
 
 ## Key documents
 - `docs/RESEARCH_DESIGN.md`: hypotheses H1–H5 and the primary specification, written before any return was examined.
-- `docs/DECISIONS.md`: every methodological choice with alternatives and rationale, including the audit of earlier work, the test unlock (D-027), a look-ahead bug caught through the test window (D-028), and the independent reviewer's fixes (D-029).
+- `docs/DECISIONS.md`: every methodological choice with alternatives and rationale, including the audit of earlier work, the test unlock (D-027), a look-ahead bug caught through the test window (D-028), the independent reviewer's fixes (D-029), and the supplementary studies (D-031 to D-034).
 - `docs/DATA_AUDIT.md`: inventory, coverage, identifiers and timing evidence for every input.
 
 ## Limitations (summary)
-- **Survivorship.** Free price data only covers firms that still trade, and the bias is stronger in early years than late ones.
+- **Survivorship.** Free price data only covers firms that still trade, and the bias is stronger in early years than late ones. An audit using SEC filing histories (which include the missing firms) shows that the bias works against, not for, the risk premium; it cannot score the machine-learning strategy's short leg.
 - **Current, not historical, identifiers** (industry, ticker, exchange).
 - **Size and book data start in 2009–2011** (XBRL).
 - **Untested score validity:** the risk scores come from transformers trained on synthetic sentences with no human validation on real filings.
@@ -86,7 +89,7 @@ docs/                     PLAN, PROGRESS, DECISIONS, DATA_AUDIT, ENVIRONMENT, RE
 Full discussion: the Limitations section of the website.
 
 ## Authors
-Developed by Yug Mitulkumar Desai and Arin Mehta as part of MS 499 (Independent Research). Supervisor: Marcos Severo.
+Developed by Yug Mitulkumar Desai and Arin Mehta as part of MS 499 (Independent Research). Supervisor: Professor Marcos Severo.
 
 ## Citation
 Astvansh, V., & Simpson, J. J. (2026). A firm's operational risk: Data set and empirical evidence. *Manufacturing & Service Operations Management*, 28(1), 326–341.

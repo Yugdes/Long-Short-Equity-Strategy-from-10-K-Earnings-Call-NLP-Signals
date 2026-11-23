@@ -191,3 +191,40 @@ Current values: `results/tables/ml_summary_dev_h1.csv`, `ml_diagnostics_dev.csv`
   - Nothing clears |t| ≥ 3.
 - *Verdict.* The site's H4 verdict now uses the larger of the FM interaction t and the VW cushion α t, and moves from "Not supported" to "Below hurdle" (2.26, right sign).
 - *Window.* The double sort is a development-window hypothesis test like the other single-signal sorts; it is not run on the test window.
+
+**D-032 — 2026-11-23 — Survivorship audit from SEC filing histories (instead of CRSP).** The alternative was a CRSP/Compustat extract: it is the only true fix, but no extract is available to the project (only the WRDS CIK–GVKEY link table is). The SEC keeps the full filing history of every registrant, including firms that later failed or were acquired, so the bias can at least be measured and bounded (`src/evaluation/survivorship.py`).
+- *Population.* Non-empty 10-K risk sections of non-financial, non-utility firms that ever had CRSP-listed equity, proxied by a "CRSP/Compustat Merged" source row in the link table.
+- *Coverage.* A filing is covered if we observe a monthly return within 12 months after the filing month.
+- *Fate* (from bulk `submissions.zip`, recent plus overflow files):
+  - *survivor:* any filing on or after 2025-01-01;
+  - *bankrupt:* an 8-K with item 1.03 within 3 years before the last filing;
+  - *merged:* DEFM14A/PREM14A/DEFM14C/PREM14C/SC 14D9/SC TO-T/SC 13E3 within 2 years before the last filing;
+  - *exit_other:* otherwise.
+  - Item 3.01 and form 25 are not used, because acquired firms file them too.
+- *Findings* (`results/tables/survivorship_*.csv`):
+  - Coverage is 26% of 2006 filings and 80% of 2024 filings.
+  - Among missing firms, acquisitions far outnumber bankruptcies.
+  - In 2010–2021 the lowest decile of aggregate risk is missing 70% of filings against 55% for the highest.
+  - Restoring the missing firms would erase the observed VW aggregate-risk spread only if they outperformed observed firms in the same decile by 1.7% a month, so survivorship does not manufacture the (insignificant) risk premium.
+  - It cannot be scored for the ML strategy's short leg, which needs predictions for firms without prices.
+- *By-product (validity).* In linear probability models with filing-year FE and firm-clustered t (filings 2006–2022, including firms we lack prices for), finance-risk language predicts bankruptcy within 36 months (+3.0 pp from the lowest to the highest rank, t = 8.6; base rate 3.1%), and so does operations risk (t = 4.6). Technology, marketing and international risk predict acquisition.
+- *Status.* These are audit outcomes, never signal inputs, and are not trading trials (not in the DSR family).
+
+**D-033 — 2026-11-23 — Filing-date event study.** The question is whether investors react to risk language when the 10-K appears and whether a drift follows (`src/evaluation/event_study.py`).
+- *Sample.* 15,797 filings, 2010–2024, of firms eligible in the filing month.
+- *Returns.* Day 0 is the first trading day on or after the filing date. Abnormal returns are market-adjusted with Ken French's daily Mkt-RF + RF (new frozen download: `F-F_Research_Data_Factors_daily_CSV.zip`).
+- *Signals and controls.* Signals are the panel's ranks from the filing's first usable month, checked to be this filing's signal. Controls are measured before the filing month.
+- *Estimation.* Fama-MacBeth across filing years; outcomes are winsorised 1/99% within year.
+- *Findings.* Legal-risk language comes with larger filing-day moves (|CAR[0,+1]| t = 5.1). No measure predicts the [+2,+60] drift (all |t| < 1.3), consistent with H2's null.
+- *Status and window.* Descriptive and not a trading rule, so not a trial. It spans the unlocked test years because it tests no strategy.
+
+**D-034 — 2026-11-23 — Replication of Astvansh & Simpson (2026) Table 7 with SEC XBRL.** The purpose is to check that our linked risk scores behave as their authors report (`src/evaluation/replication.py`).
+- *Data.* Compustat is replaced by XBRL companyfacts parsed for every risk CIK, including firms that later disappeared.
+- *Variable mapping:*
+  - y = the latest annual period end among facts filed with the 10-K;
+  - DV = ln(COGS) for the next annual period (330–400 days later, winsorised 1/99%);
+  - firm size = ln(assets), per their Table 5 (their text says ln(revenue));
+  - R&D = XRD/assets (their Table 5 formula; their text says ÷ revenue), with missing set to 0;
+  - non-operational risk = the sum of the 7 other probabilities.
+- *Estimation.* Firm and fiscal-year FE, firm-clustered SEs.
+- *Result.* 34,960 firm-years and 5,832 firms. The operations coefficient is 0.289 (SE 0.107) against their 0.247 (0.041), and 0.275 against their 0.222 without the non-operational terms. The main effect replicates; their interaction (0.298, t ≈ 2.4) does not (0.149, t = 0.4). The paper's published coefficients are transcribed in `PAPER_T7` for side-by-side reporting.

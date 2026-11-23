@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Datasets } from "./sections/Data";
 import { Results } from "./sections/Results";
 import { Explain, Robustness } from "./sections/Robust";
+import { Studies } from "./sections/Studies";
 import { Design, Limitations, Motivation, Pipeline, References, Team, Validation } from "./sections/Static";
 import { fx, num, pct, useData } from "./lib";
 
@@ -12,7 +13,7 @@ type Summary = {
 };
 
 const TOC: [string, string][] = [["motivation", "Motivation"], ["data", "Datasets"], ["design", "Design"], ["pipeline", "Pipeline"],
-  ["models", "Models"], ["results", "Results"], ["robustness", "Robustness"], ["explain", "Explainability"],
+  ["models", "Models"], ["results", "Results"], ["robustness", "Robustness"], ["studies", "Further evidence"], ["explain", "Explainability"],
   ["limitations", "Limitations"], ["references", "References"]];
 
 type ModelsLite = { vol_prediction_dev: Record<string, number | string>[] };
@@ -46,7 +47,7 @@ function Hero() {
       <h1>Do the risks firms write down predict their stock returns?</h1>
       <p className="lede">A point-in-time test of {num(s.n_filings_scored)} scored 10-K risk sections and quarterly earnings-call
         language, combined with machine learning into a long-short equity strategy across {num(s.n_firms_panel)} U.S. firms.</p>
-      <p className="byline">Authors: Yug Mitulkumar Desai, Arin Mehta<br />Supervisor: Marcos Severo</p>
+      <p className="byline">Authors: Yug Mitulkumar Desai, Arin Mehta<br />Supervisor: Professor Marcos Severo</p>
       <p className="verdict" id="verdict">{verdict(s, m)}</p>
       <div className="stats">
         <div className="stat"><div className="v num">{fx(p.dev_ic_mean as number, 3)}</div><div className="l">mean monthly rank IC, development window 2014–2021 (t = {fx(p.dev_ic_t as number, 1)})</div></div>
@@ -88,6 +89,7 @@ export default function App() {
         <Validation />
         <Results />
         <Robustness />
+        <Studies />
         <Explain />
         <Limitations />
         <References />

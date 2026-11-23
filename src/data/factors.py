@@ -10,7 +10,7 @@ from src.utils.config import path
 
 BASE = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 FILES = {"ff5": "F-F_Research_Data_5_Factors_2x3_CSV.zip", "mom": "F-F_Momentum_Factor_CSV.zip",
-         "sic48": "Siccodes48.zip", "sic12": "Siccodes12.zip"}
+         "sic48": "Siccodes48.zip", "sic12": "Siccodes12.zip", "ff3_daily": "F-F_Research_Data_Factors_daily_CSV.zip"}
 
 
 def _fetch(key: str) -> bytes:
@@ -51,6 +51,16 @@ def load_ff_factors() -> pd.DataFrame:
     f = f.rename(columns={"mktrf": "mktrf"}).reset_index()
     f.to_parquet(out, index=False)
     return f
+
+
+def load_ff_daily() -> pd.DataFrame:
+    """Daily FF3 + RF (decimals): [date, mktrf, smb, hml, rf]. Used only by the filing-date event study."""
+    text = _fetch("ff3_daily").decode("latin-1").splitlines()
+    hdr = next(i for i, l in enumerate(text) if re.match(r"^\s*\d{8}\s*,", l)) - 1
+    rows = [[v.strip() for v in l.split(",")] for l in text[hdr + 1:] if re.match(r"^\s*\d{8}\s*,", l)]
+    df = pd.DataFrame(rows, columns=["date"] + [c.strip().replace("-", "").lower() for c in text[hdr].split(",")[1:]])
+    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
+    return df.set_index("date").astype(float).div(100).reset_index()
 
 
 def load_sic_map(scheme: str = "sic48") -> pd.DataFrame:

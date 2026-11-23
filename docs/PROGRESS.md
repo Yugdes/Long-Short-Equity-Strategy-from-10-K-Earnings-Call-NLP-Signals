@@ -51,9 +51,14 @@
 ## Final numbers (definitive run)
 See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), test IC 0.060 (t 4.5; controls-only 0.064). Primary net Sharpe −0.12 dev / 0.51 test; net FF5+Mom α t −0.85 / −0.83. DSR 0.08 (123 specs, after D-031's 24 double-sort trials; 0.11 over 99 before), PBO 0.88. Verdict: prediction yes, alpha no; text adds little beyond known characteristics; risk text predicts volatility (5/8 factors, both signs).
 
+## Supplementary studies (2026-11-23, D-032..D-034; `run_all.py --only studies`)
+- Survivorship audit: coverage of once-listed filers 26% (2006) → 80% (2024); low-risk decile loses the most firms (70% vs 55%); missing firms would need +1.7%/month to erase the VW aggregate-risk spread. Finance risk predicts bankruptcy within 3y (t = 8.6), operations t = 4.6.
+- Filing-date event study (15,797 10-Ks): legal risk → larger |CAR[0,+1]| (t = 5.1); no post-filing drift (|t| < 1.3).
+- Replication of the source paper: operations → next-year ln(COGS) 0.289 (SE 0.107) vs 0.247 (0.041); interaction not replicated.
+
 ## Next steps (open items for the user)
-1. The final report has not been written; the brief says to wait to be asked.
-2. Fill in the website footer names (placeholders, per the brief).
+1. The final report is being written in `report/` (LaTeX), as requested on 2026-11-23.
+2. Website names filled in (authors; supervisor Professor Marcos Severo).
 3. Push to GitHub yourself (nothing has been pushed; the `origin` remote was left untouched).
 4. Optional upgrade: a CRSP/Compustat extract would remove the survivorship bias (see Limitations).
 
@@ -61,3 +66,4 @@ See README headline block (generated from results/json). Dev IC 0.041 (t 3.6), t
 - 2026-11-22: Phase 0 complete. Old pipeline removed per the audit (see DECISIONS §A). New skeleton; Phase 2 data layer started.
 - 2026-11-22: Phases 1–8 complete. Test unlocked (D-027); split look-ahead bug found and fixed (D-028); two independent reviews applied (D-029, D-030); definitive clean rerun.
 - 2026-11-23: Added the pre-registered H4 3×3 double sort (D-031): code, test, site table and ledger; reran single → analysis → export → notebooks.
+- 2026-11-23: Supervisor named on site and README. Added survivorship audit, filing-date event study and source-paper replication (D-032..D-034): code, tests, `studies` stage, site section "Further evidence", README rows.

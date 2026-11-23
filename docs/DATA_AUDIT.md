@@ -106,3 +106,8 @@ The combined risk × marketing universe is therefore ~5k firms. Marketing-featur
   - Factors: Ken French FF5 (2×3), momentum and RF, monthly.
 - **Survivorship bias, quantified.** Yahoo only serves currently listed tickers, so firms that delisted, merged or went bankrupt before 2026 are missing. Using the old current-ticker pull, the share of risk firm-years with any return history is **26% for 2005 filings, 29% for 2008, 31% for 2012, 43% for 2016, 60% for 2020 and 76% for 2024** (42% overall; `returns_coverage_by_fyear.csv`). Part of the gap is registrants that never had listed common equity (shells, trusts, debt-only filers), which a free source cannot separate out. The remainder is survivorship. The rebuilt pipeline recomputes this funnel. Implications are carried into the design (start of the primary sample, delisting-bias sensitivity, explicit Limitations).
 - Effective sample end: risk filings stop at calendar 2024 (FY2024 10-Ks filed in 2025 are not in the dataset). With a 15-month staleness cap, the last month with broad risk-signal coverage is about **2025-06**. Return months after that are not used.
+
+## 6. Added for the supplementary studies (2026-11-23)
+- Ken French **daily** FF3 + RF (`data/raw/french/F-F_Research_Data_Factors_daily_CSV.zip`) for the filing-date event study (D-033).
+- Full SEC filing histories (form type, date, 8-K items) of every risk CIK, read from the existing `submissions.zip` (recent + overflow files), cached as `data/interim/sec_fate.parquet` (D-032).
+- XBRL COGS, assets and R&D for **every** risk CIK (not only firms with prices), cached as `data/interim/xbrl_replication.parquet` (D-034).

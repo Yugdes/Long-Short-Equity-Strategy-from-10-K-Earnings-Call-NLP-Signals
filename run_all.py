@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "export", "notebooks"]
+STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "studies", "export", "notebooks"]
 
 
 def stage_download(force):
@@ -78,6 +78,12 @@ def stage_ml(force):
 def stage_analysis(force):
     from src.viz.export import run_analysis
     run_analysis()
+
+
+def stage_studies(force):
+    """Supplementary studies (D-032..D-034): survivorship audit, filing-date event study, source-paper replication."""
+    from src.evaluation import event_study, replication, survivorship
+    survivorship.run(), event_study.run(), replication.run()
 
 
 def stage_export(force):

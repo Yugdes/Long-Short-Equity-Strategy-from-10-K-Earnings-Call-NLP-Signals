@@ -318,6 +318,14 @@ def export_json():
         "extended_ew": {k: {"cum": _ser(cum(v)), "stats": perf_stats(v)} for k, v in res["extended_ew"].items()},
         "spec_count": int(pd.read_csv(path("results") / "spec_log.csv")["stage"].isin(DEV_STAGES).sum()),
     })
+    # supplementary studies (D-032..D-034), written by the `studies` stage
+    rd = lambda n: _tab(pd.read_csv(T / f"{n}.csv"))
+    if (T / "replication_cogs.csv").exists():
+        _write("studies", {
+            "survivorship": {k: rd(f"survivorship_{k}") for k in ("coverage", "fate_lpm", "missing_decile", "breakeven", "summary")},
+            "event": {k: rd(f"event_study_{k}") for k in ("fm", "quintiles", "summary")},
+            "replication": {"table": rd("replication_cogs"), "summary": rd("replication_summary")},
+        })
     sh = res["shap"]
     _write("shap", {
         "importance": _tab(sh["importance"].head(25)),
@@ -370,6 +378,23 @@ def write_readme_headline():
                                                  f"(predicted positive); exploratory: {up + down} of 8 individual factors have t-statistics of 3 or more "
                                                  f"in size after controls ({up} higher, {down} lower)"),
     ]
+    if (J / "studies.json").exists():
+        st = json.loads((J / "studies.json").read_text(encoding="utf-8"))
+        cov = {r["year"]: r["covered"] for r in st["survivorship"]["coverage"]}
+        bk = {r["signal"]: r for r in st["survivorship"]["fate_lpm"] if r["outcome"] == "bk_36m"}
+        be = {(r["signal"], r["weight"]): r["breakeven_gap_m"] for r in st["survivorship"]["breakeven"]}
+        rep = {(r["model"], r["var"]): r for r in st["replication"]["table"]}
+        rs = st["replication"]["summary"][0]
+        rows += [
+            ("Survivorship audit (SEC filing histories)",
+             f"our prices cover {cov[2006] * 100:.0f}% of once-listed 10-K filers in 2006 and {cov[2024] * 100:.0f}% in 2024; the low-risk decile "
+             f"loses the most firms, so missing firms would have to outperform by {be[('r_risk_all', 'vw')] * 100:.1f}% a month to erase the "
+             f"aggregate-risk spread; finance-risk language predicts bankruptcy within 3 years (t = {f(bk['r_finance']['t'], 1)})"),
+            ("Replication of Astvansh & Simpson (2026), operations risk → next-year ln(COGS)",
+             f"{f(rep[('(4)', 'op')]['coef'], 3)} (SE {f(rep[('(4)', 'op')]['se'], 3)}) on {rs['n']:,} XBRL firm-years vs "
+             f"{rs['paper_op_coef']} ({rs['paper_op_se']}) in the paper; their risk interaction does not replicate "
+             f"(t = {f(rep[('(4)', 'op_x_nonop')]['t'], 1)})"),
+        ]
     lines = ["**Headline results** (generated from `results/json` by `src/viz/export.py`):", "", "| Measure | Result |", "|---|---|"]
     lines += [f"| {a} | {b} |" for a, b in rows]
     lines += ["", "**Bottom line:** the forecasts rank stocks better than chance, but the long-short strategy earns no significant "

@@ -117,7 +117,10 @@ export function Limitations() {
           Firms that later failed are missing mostly from the early years, so the development window's losers look better than
           they really were, and the bias weakens toward the test window. Development and test results are therefore not directly
           comparable, and the strategy's short leg is the part most affected. Only {rng(cov, 0, true)} of each year's filings (2010–2024) reach
-          the primary universe. A survivorship-free source (CRSP with delisting returns) is the real fix.</p>
+          the primary universe. The survivorship audit under Further evidence uses SEC filing histories, which include the missing
+          firms, to bound the damage. Among the missing, acquisitions far outnumber bankruptcies, and the low-risk decile loses more firms than the
+          high-risk one, so the bias works against the risk premium rather than for it. The audit cannot score the machine-learning
+          strategy's short leg; a survivorship-free price source (CRSP with delisting returns) remains the real fix.</p>
         <p><strong>Free fundamentals.</strong> Market capitalisation and book equity come from XBRL filings, which begin in
           2009 to 2011. Size and value controls and value weights are unavailable earlier, which is why the primary sample starts
           in 2010. Share counts needed sanity rules (decision log D-021), and a handful of misstated values can remain, which is
@@ -181,7 +184,7 @@ export function Team() {
   return (
     <footer>
       <div className="prose">
-        <p>MS 499 independent research project. Authors: Yug Mitulkumar Desai, Arin Mehta. Supervisor: Marcos Severo.</p>
+        <p>MS 499 independent research project. Authors: Yug Mitulkumar Desai, Arin Mehta. Supervisor: Professor Marcos Severo.</p>
         <p>Built from code in this repository; every figure on this page is read from the pipeline's exported results. Research and
           teaching use only; not investment advice.</p>
       </div>
