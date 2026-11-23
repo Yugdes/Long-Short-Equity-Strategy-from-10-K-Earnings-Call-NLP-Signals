@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "studies", "export", "notebooks"]
+STAGES = ["download", "panel", "features", "tests", "single", "ml", "analysis", "studies", "export", "notebooks", "report"]
 
 
 def stage_download(force):
@@ -94,6 +94,17 @@ def stage_export(force):
 
 def stage_notebooks(force):
     subprocess.run([sys.executable, "scripts/make_notebooks.py"], check=True)
+
+
+def stage_report(force):
+    """Regenerate the report's numbers, tables and figures from results/, then compile report/main.pdf if LaTeX exists."""
+    import shutil
+    subprocess.run([sys.executable, "report/make_report_assets.py"], check=True)
+    if shutil.which("latexmk"):
+        subprocess.run(["latexmk", "-pdf", "-interaction=nonstopmode", "-halt-on-error", "main.tex"], cwd="report", check=True,
+                       stdout=subprocess.DEVNULL)
+    else:
+        print("latexmk not found: assets regenerated, compile report/main.tex yourself")
 
 
 if __name__ == "__main__":

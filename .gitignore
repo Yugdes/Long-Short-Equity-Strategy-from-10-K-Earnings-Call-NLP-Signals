@@ -28,3 +28,14 @@ website/public/data/
 Thumbs.db
 desktop.ini
 *.log
+
+# LaTeX build files
+report/*.aux
+report/*.log
+report/*.fls
+report/*.fdb_latexmk
+report/*.out
+report/*.toc
+report/*.bbl
+report/*.blg
+report/*.synctex.gz

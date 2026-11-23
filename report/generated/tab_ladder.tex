@@ -1,0 +1,35 @@
+\begin{tabular}{llrrrrrrr}
+\toprule
+Features & Model & Rank IC & $t$ & IC $>0$ & Hit rate & VW Sharpe & VW $t_\alpha$ & EW $t_\alpha$ \\
+\midrule
+\multicolumn{9}{l}{\textit{Panel A: development, 2014--2021 (96 months)}} \\
+Controls only & Elastic net & 0.0293 & 2.07 & 40\% & 50.8\% & 0.22 & 0.31 & \ensuremath{-}0.00 \\
+Controls only & LightGBM & 0.0316 & 2.96 & 62\% & 51.1\% & 0.33 & \ensuremath{-}0.05 & 0.61 \\
+Controls only & XGBoost & 0.0346 & \textbf{3.30} & 60\% & 51.1\% & 0.35 & 0.34 & 1.62 \\
+Controls only & Neural net & 0.0309 & \textbf{3.59} & 60\% & 51.0\% & 0.33 & \ensuremath{-}0.37 & 1.08 \\
+Controls only & Rank ensemble & 0.0346 & 2.99 & 56\% & 51.2\% & 0.39 & 0.24 & 0.46 \\
++ risk text & Elastic net & 0.0303 & 2.00 & 41\% & 50.9\% & 0.09 & \ensuremath{-}0.12 & 0.52 \\
++ risk text & LightGBM & 0.0295 & 2.65 & 64\% & 51.1\% & 0.06 & \ensuremath{-}0.32 & \ensuremath{-}0.03 \\
++ marketing & Elastic net & 0.0391 & 2.60 & 46\% & 51.1\% & 0.13 & \ensuremath{-}0.07 & 0.34 \\
++ marketing & LightGBM & 0.0408 & \textbf{3.70} & 69\% & 51.6\% & 0.14 & \ensuremath{-}0.33 & 0.87 \\
++ interactions (all) & Elastic net & 0.0383 & 2.55 & 45\% & 51.1\% & 0.15 & \ensuremath{-}0.02 & 0.32 \\
++ interactions (all) & LightGBM & 0.0409 & \textbf{3.79} & 70\% & 51.6\% & 0.29 & 0.27 & 1.15 \\
++ interactions (all) & XGBoost & 0.0407 & \textbf{3.92} & 67\% & 51.5\% & 0.13 & \ensuremath{-}0.16 & 1.05 \\
++ interactions (all) & Neural net & 0.0244 & \textbf{3.49} & 64\% & 50.9\% & 0.31 & 0.38 & 1.65 \\
++ interactions (all) & Rank ensemble & 0.0412 & \textbf{3.64} & 66\% & 51.5\% & 0.25 & 0.26 & 1.28 \\
+Text only & Elastic net & 0.0254 & 2.68 & 56\% & 50.9\% & 0.24 & \ensuremath{-}0.17 & 0.24 \\
+Text only & LightGBM & 0.0327 & \textbf{3.78} & 68\% & 51.2\% & 0.45 & 1.06 & 1.33 \\
+\midrule
+\multicolumn{9}{l}{\textit{Panel B: locked test, 2022-01 to 2025-05 (41 months)}} \\
+Controls only & Elastic net & 0.0669 & \textbf{7.39} & 71\% & 52.7\% & 1.20 & 1.02 & 0.02 \\
+Controls only & LightGBM & 0.0591 & \textbf{6.00} & 71\% & 52.1\% & 0.85 & 0.05 & 0.98 \\
+Controls only & XGBoost & 0.0601 & \textbf{5.48} & 71\% & 52.2\% & 0.67 & \ensuremath{-}0.33 & 0.05 \\
+Controls only & Neural net & 0.0547 & \textbf{6.16} & 71\% & 51.9\% & 0.37 & \ensuremath{-}1.64 & 0.99 \\
+Controls only & Rank ensemble & 0.0644 & \textbf{6.37} & 71\% & 52.3\% & 0.59 & \ensuremath{-}1.61 & 0.02 \\
++ interactions (all) & Elastic net & 0.0610 & \textbf{4.58} & 68\% & 52.2\% & 1.02 & 0.76 & 0.50 \\
++ interactions (all) & LightGBM & 0.0587 & \textbf{4.86} & 68\% & 52.0\% & 0.86 & 0.27 & 0.72 \\
++ interactions (all) & XGBoost & 0.0568 & \textbf{4.25} & 71\% & 51.9\% & 0.88 & 0.36 & 0.47 \\
++ interactions (all) & Neural net & 0.0474 & \textbf{4.67} & 68\% & 51.8\% & \ensuremath{-}0.29 & \textbf{\ensuremath{-}4.14} & \ensuremath{-}0.49 \\
++ interactions (all) & Rank ensemble & 0.0599 & \textbf{4.52} & 68\% & 52.2\% & 0.80 & 0.05 & 0.62 \\
+\bottomrule
+\end{tabular}

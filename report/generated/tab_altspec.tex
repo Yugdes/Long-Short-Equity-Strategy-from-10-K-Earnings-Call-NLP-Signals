@@ -1,0 +1,22 @@
+\begin{tabular}{lrrr}
+\toprule
+Specification (development OOS, 2014--2021) & Rank IC & $t$ & Hit rate \\
+\midrule
+\multicolumn{4}{l}{\textit{Panel A: timing variants}} \\
+Baseline (LightGBM, all features) & 0.0409 & \textbf{3.79} & 51.6\% \\
+Call scores one month earlier (no buffer) & 0.0428 & \textbf{4.32} & 51.6\% \\
+Call scores one month later & 0.0400 & \textbf{3.78} & 51.3\% \\
+10-K scores 10 business days after filing & 0.0412 & \textbf{3.63} & 51.5\% \\
+\midrule
+\multicolumn{4}{l}{\textit{Panel B: feature diagnostics}} \\
+Controls + call-coverage flag & 0.0351 & \textbf{3.41} & 51.2\% \\
+Controls + marketing, no flag & 0.0425 & \textbf{4.13} & 51.5\% \\
+Controls + marketing & 0.0423 & \textbf{3.98} & 51.5\% \\
+Controls + risk + raw marketing components & 0.0429 & \textbf{4.00} & 51.5\% \\
+\midrule
+\multicolumn{4}{l}{\textit{Panel C: horizon}} \\
+3-month target: + interactions (all), Elastic net & 0.0379 & 1.89 & 51.5\% \\
+3-month target: Controls only, LightGBM & 0.0430 & 2.25 & 51.4\% \\
+3-month target: + interactions (all), LightGBM & 0.0493 & 2.67 & 51.7\% \\
+\bottomrule
+\end{tabular}
