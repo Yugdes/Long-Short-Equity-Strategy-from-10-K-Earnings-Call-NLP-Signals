@@ -15,7 +15,9 @@
 \usepackage{enumitem}
 \usepackage{setspace}
 \usepackage{tabularx}
+\PassOptionsToPackage{hyphens}{url} % long URLs may break after a hyphen
 \usepackage[hidelinks]{hyperref}
+\urlstyle{same}
 
 \setstretch{1.12}
 \setlist{itemsep=2pt,topsep=4pt}
@@ -58,6 +60,12 @@ against, not for, the small risk premium we observe.
 \vspace{4pt}
 \noindent\textbf{Keywords:} textual analysis; risk-factor disclosure; earnings calls; marketing; cross-section of returns;
 machine learning; backtest overfitting.
+
+\vspace{6pt}
+{\small\noindent\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X@{}}
+\textbf{Code and data:} & \url{https://github.com/Yugdes/Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals}\\
+\textbf{Website:} & \url{https://yugdes.github.io/Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals/}
+\end{tabularx}}
 
 \newpage
 \tableofcontents
@@ -927,6 +935,9 @@ frozen after the first run. Every result in this report (each estimate, statisti
 the pipeline's outputs by \texttt{report/make\_report\_assets.py}; the only numbers typed by hand are design parameters,
 counts from the data audit and values quoted from the cited papers. The test suite checks the timing rules on the final panel,
 the walk-forward embargo, portfolio arithmetic, the event-study windows and the survivorship classification. The code,
-the decision log and a website presenting the results are in the project repository.
+the data audit and the decision log are in the project repository,
+\url{https://github.com/Yugdes/Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals}. An interactive website
+presenting the results, rebuilt automatically from the same outputs, is at
+\url{https://yugdes.github.io/Long-Short-Equity-Strategy-from-10-K-Earnings-Call-NLP-Signals/}.
 
 \end{document}
