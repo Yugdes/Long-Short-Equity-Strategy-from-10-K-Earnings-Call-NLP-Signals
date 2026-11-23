@@ -45,7 +45,9 @@ export function Datasets() {
         <div className="prose">
           <h3>Risk factors in 10-K filings</h3>
           <p>Astvansh &amp; Simpson (2026) extracted Item 1A from {num(total)} non-empty 10-Ks filed 2006–2024 and scored each
-            on eight risk factors with fine-tuned transformers. Each score is a probability that the section discusses the factor.
+            on eight risk factors with fine-tuned transformers. The eight factors and their keyword dictionaries come from
+            Schnatterly et al. (2021), who compared each firm's disclosed risks with the expertise of its board. Each score
+            is a probability that the section discusses the factor.
             The dataset labels each filing by the year it was filed, which the timing rules here rely on.</p>
         </div>
         <div className="prose">

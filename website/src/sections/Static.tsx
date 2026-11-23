@@ -165,6 +165,7 @@ const REFS: [string, string][] = [
   ["McLean, R. D., & Pontiff, J. (2016). Does academic research destroy stock return predictability? Journal of Finance, 71(1), 5–32.", "https://doi.org/10.1111/jofi.12365"],
   ["Newey, W. K., & West, K. D. (1987). A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix. Econometrica, 55(3), 703–708.", "https://doi.org/10.2307/1913610"],
   ["Price, S. M., Doran, J. S., Peterson, D. R., & Bliss, B. A. (2012). Earnings conference calls and stock returns: The incremental informativeness of textual tone. Journal of Banking & Finance, 36(4), 992–1011.", "https://doi.org/10.1016/j.jbankfin.2011.10.013"],
+  ["Schnatterly, K., Calvano, F., Berns, J. P., & Deng, C. (2021). The effects of board expertise-risk misalignment and subsequent strategic board reconfiguration on firm performance. Strategic Management Journal, 42(11), 2162–2191.", "https://doi.org/10.1002/smj.3291"],
   ["Srinivasan, S., & Hanssens, D. M. (2009). Marketing and firm value: Metrics, methods, findings, and future directions. Journal of Marketing Research, 46(3), 293–312.", "https://doi.org/10.1509/jmkr.46.3.293"],
 ];
 
