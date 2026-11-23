@@ -86,7 +86,7 @@ docs/                     PLAN, PROGRESS, DECISIONS, DATA_AUDIT, ENVIRONMENT, RE
 Full discussion: the Limitations section of the website.
 
 ## Authors
-Developed by Yug Mitulkumar Desai and Arin Mehta as part of MS 499 (Independent Research).
+Developed by Yug Mitulkumar Desai and Arin Mehta as part of MS 499 (Independent Research). Supervisor: Marcos Severo.
 
 ## Citation
 Astvansh, V., & Simpson, J. J. (2026). A firm's operational risk: Data set and empirical evidence. *Manufacturing & Service Operations Management*, 28(1), 326–341.

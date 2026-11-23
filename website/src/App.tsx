@@ -46,6 +46,7 @@ function Hero() {
       <h1>Do the risks firms write down predict their stock returns?</h1>
       <p className="lede">A point-in-time test of {num(s.n_filings_scored)} scored 10-K risk sections and quarterly earnings-call
         language, combined with machine learning into a long-short equity strategy across {num(s.n_firms_panel)} U.S. firms.</p>
+      <p className="byline">Authors: Yug Mitulkumar Desai, Arin Mehta<br />Supervisor: Marcos Severo</p>
       <p className="verdict" id="verdict">{verdict(s, m)}</p>
       <div className="stats">
         <div className="stat"><div className="v num">{fx(p.dev_ic_mean as number, 3)}</div><div className="l">mean monthly rank IC, development window 2014–2021 (t = {fx(p.dev_ic_t as number, 1)})</div></div>

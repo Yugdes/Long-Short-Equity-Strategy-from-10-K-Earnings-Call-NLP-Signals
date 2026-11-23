@@ -93,6 +93,7 @@ main { counter-reset: sec; }
 .hero { padding: 64px 0 40px; }
 .hero h1 { max-width: 15ch; }
 .hero .lede { max-width: 60ch; margin-top: 1.6rem; }
+.byline { font-family: var(--sans); font-size: 0.95rem; line-height: 1.6; color: var(--ink-2); margin-top: 1rem; }
 .verdict { margin-top: 2rem; max-width: var(--measure); border-left: 3px solid var(--amber); padding: 0.2rem 0 0.2rem 1rem; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.4rem 2rem; margin: 2.4rem 0 0; }
 .stat .v { font-family: var(--sans); font-size: 2rem; font-weight: 640; font-stretch: 112%; line-height: 1; }

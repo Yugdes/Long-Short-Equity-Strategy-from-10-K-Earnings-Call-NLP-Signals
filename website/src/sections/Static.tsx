@@ -181,7 +181,7 @@ export function Team() {
   return (
     <footer>
       <div className="prose">
-        <p>MS 499 independent research project. Authors: [Student name], [Student name]. Supervisor: [Faculty supervisor].</p>
+        <p>MS 499 independent research project. Authors: Yug Mitulkumar Desai, Arin Mehta. Supervisor: Marcos Severo.</p>
         <p>Built from code in this repository; every figure on this page is read from the pipeline's exported results. Research and
           teaching use only; not investment advice.</p>
       </div>
